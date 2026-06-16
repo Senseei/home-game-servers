@@ -1,0 +1,39 @@
+# Palworld — github.com/thijsvanloef/palworld-server-docker
+# Full env reference: https://github.com/thijsvanloef/palworld-server-docker#environment-variables
+# NOTE: Palworld is still evolving; verify env names against the upstream README.
+#
+#   ../../scripts/ctl.sh up palworld
+#
+services:
+  palworld:
+    image: thijsvanloef/palworld-server-docker:latest
+    container_name: palworld-server
+    restart: unless-stopped
+    stop_grace_period: 30s
+    ports:
+      - "8211:8211/udp"             # game port (UDP)
+      - "27015:27015/udp"           # Steam query port (UDP)
+      - "127.0.0.1:25575:25575"     # RCON — localhost ONLY
+    environment:
+      PUID: "${PUID}"
+      PGID: "${PGID}"
+      TZ: "${TZ}"
+      PORT: "8211"
+      PLAYERS: "${PAL_PLAYERS}"
+      SERVER_NAME: "${PAL_SERVER_NAME}"
+      SERVER_PASSWORD: "${SERVER_PASSWORD}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD}"
+      MULTITHREADING: "true"
+      RCON_ENABLED: "true"
+      RCON_PORT: "25575"
+      # Pause the server process when empty so the laptop isn't burning CPU idle:
+      ENABLE_AUTO_PAUSE: "true"
+      # Built-in scheduled backups (we ALSO run the external offsite backup script):
+      BACKUP_ENABLED: "true"
+      AUTO_UPDATE_ENABLED: "true"
+    volumes:
+      - ./data:/palworld            # saves + config (PalWorldSettings.ini) live here
+    deploy:
+      resources:
+        limits:
+          memory: "${PAL_MEMORY}"

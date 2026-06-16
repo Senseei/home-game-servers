@@ -1,0 +1,39 @@
+# Minecraft (Paper) — github.com/itzg/docker-minecraft-server
+# Full env reference: https://docker-minecraft-server.readthedocs.io
+#
+#   ../../scripts/ctl.sh up minecraft
+#
+services:
+  minecraft:
+    image: itzg/minecraft-server:latest
+    container_name: mc
+    restart: unless-stopped
+    stop_grace_period: 90s          # let the world save on shutdown
+    tty: true
+    stdin_open: true
+    ports:
+      - "25565:25565"               # Java game port (TCP)
+      - "127.0.0.1:25575:25575"     # RCON — localhost ONLY, never expose publicly
+    environment:
+      EULA: "TRUE"
+      TYPE: "PAPER"                  # high-performance Spigot fork; supports plugins
+      VERSION: "${MC_VERSION}"
+      MEMORY: "${MC_MEMORY}"
+      USE_AIKAR_FLAGS: "true"        # tuned G1GC flags for Minecraft
+      TZ: "${TZ}"
+      ENABLE_RCON: "true"
+      RCON_PASSWORD: "${RCON_PASSWORD}"
+      # Auto-download plugins/mods from Modrinth on boot (comma-separated slugs):
+      MODRINTH_PROJECTS: "${MC_MODRINTH_PROJECTS}"
+      # Idle the JVM when no players are connected; wakes on connect.
+      ENABLE_AUTOPAUSE: "TRUE"
+      AUTOPAUSE_TIMEOUT_EST: "600"   # seconds of no players before pausing
+    volumes:
+      - ./data:/data                 # world + config + plugins live here
+      # Drop .jar files here to hand-install plugins (in addition to MODRINTH_PROJECTS):
+      - ./plugins:/plugins:ro
+    healthcheck:
+      test: ["CMD", "mc-health"]
+      start_period: 2m
+      interval: 30s
+      retries: 10

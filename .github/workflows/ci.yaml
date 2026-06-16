@@ -1,0 +1,30 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  shellcheck:
+    name: Lint shell scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run shellcheck
+        run: |
+          sudo apt-get update && sudo apt-get install -y shellcheck
+          shellcheck scripts/*.sh
+
+  compose-validate:
+    name: Validate compose (${{ matrix.game }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        game: [minecraft, palworld, ark-se]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Seed a dummy .env so interpolation resolves
+        run: cp .env.example .env
+      - name: docker compose config
+        working-directory: games/${{ matrix.game }}
+        run: docker compose --env-file ../../.env config -q && echo "✓ ${{ matrix.game }} compose is valid"

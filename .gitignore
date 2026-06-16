@@ -1,0 +1,19 @@
+# Secrets — never commit
+.env
+
+# World data, saves, server binaries (huge, machine-specific) — keep OUT of git.
+# These live on the host; the repo only defines how to (re)create the servers.
+games/*/data/
+games/*/server/
+games/*/plugins/*
+!games/*/plugins/.gitkeep
+
+# Local + fetched backups
+backups/
+
+# OS / editor noise
+.DS_Store
+*.swp
+
+# Original download archive (extracted into this repo)
+home-game-servers.tar.gz

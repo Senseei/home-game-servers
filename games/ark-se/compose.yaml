@@ -1,0 +1,37 @@
+# ARK: Survival Evolved — hub.docker.com/r/hermsi/ark-server
+# Full env reference: https://github.com/Hermsi1337/docker-ark-server
+# NOTE: verify env names against the upstream README before first run.
+#
+#   ../../scripts/ctl.sh up ark-se
+#
+services:
+  ark:
+    image: hermsi/ark-server:latest
+    container_name: ark-server
+    restart: unless-stopped
+    stop_grace_period: 90s          # ARK needs time to saveworld on shutdown
+    ports:
+      - "7777:7777/udp"             # game port (UDP)
+      - "7778:7778/udp"             # raw socket (UDP)
+      - "27015:27015/udp"           # Steam query (UDP)
+      - "127.0.0.1:27020:27020"     # RCON — localhost ONLY
+    environment:
+      PUID: "${PUID}"
+      PGID: "${PGID}"
+      TZ: "${TZ}"
+      SESSION_NAME: "${ARK_SESSION_NAME}"
+      SERVER_MAP: "${ARK_MAP}"
+      SERVER_PASSWORD: "${SERVER_PASSWORD}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD}"
+      MAX_PLAYERS: "${ARK_MAX_PLAYERS}"
+      # Steam Workshop mod IDs (comma-separated); the server downloads them on boot:
+      MODS: "${ARK_MODS}"
+      BACKUP_ONSTART: "true"
+      UPDATE_ON_START: "true"
+    volumes:
+      - ./data:/app/.steam          # steamcmd + server binaries (large, ~30GB)
+      - ./server:/ark               # world saves + config live here
+    deploy:
+      resources:
+        limits:
+          memory: "${ARK_MEMORY}"
