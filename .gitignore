@@ -3,8 +3,10 @@
 
 # World data, saves, server binaries (huge, machine-specific) — keep OUT of git.
 # These live on the host; the repo only defines how to (re)create the servers.
-games/*/data/
-games/*/server/
+# No trailing slash: also matches the host-specific symlinks when data lives
+# elsewhere (e.g. games/ark-se/server -> /mnt/games/ark-se/server on an HDD).
+games/*/data
+games/*/server
 games/*/plugins/*
 !games/*/plugins/.gitkeep
 
