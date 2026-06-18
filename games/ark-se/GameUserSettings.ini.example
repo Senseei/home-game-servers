@@ -15,6 +15,10 @@ OverrideOfficialDifficulty=10.0
 ServerPVE=True
 AllowFlyerSpeedLeveling=True
 
+; Building QoL
+bAllowPlatformSaddleMultiFloors=True       ; multiple floors on platform saddles
+bDisableStructurePlacementCollision=True   ; place structures overlapping / no-clip into terrain
+
 ; Rates
 XPMultiplier=2.0
 TamingSpeedMultiplier=5.0
