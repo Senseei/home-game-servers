@@ -11,8 +11,13 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-# shellcheck source=/dev/null
-[[ -f "$ROOT/.env" ]] && set -a && . "$ROOT/.env" && set +a
+# Load .env safely — values can contain spaces/quotes/apostrophes (e.g.
+# ARK_SESSION_NAME=Gabriel's ARK), so parse KEY=VALUE rather than `source` it.
+if [[ -f "$ROOT/.env" ]]; then
+  while IFS='=' read -r _k _v; do
+    [[ "$_k" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] && export "$_k=$_v"
+  done < "$ROOT/.env"
+fi
 
 BACKUP_KEEP_LOCAL="${BACKUP_KEEP_LOCAL:-7}"
 BACKUP_KEEP_REMOTE="${BACKUP_KEEP_REMOTE:-14}"
@@ -36,8 +41,11 @@ case "$game" in
     flush_on()  { :; }
     ;;
   ark-se)
-    container="ark-server"; data="$ROOT/games/ark-se/server"
-    flush_off() { docker exec "$container" rcon-cli "saveworld" >/dev/null; }
+    container="ark-server"
+    # Back up only the saves + config (~140M), NOT the 22GB re-downloadable install.
+    data="$ROOT/games/ark-se/server/server/ShooterGame/Saved"
+    # hermsi image has no rcon-cli; talk to ARK's RCON directly (host net, :27020).
+    flush_off() { python3 "$ROOT/scripts/rcon.py" 127.0.0.1 "${ARK_RCON_PORT:-27020}" "$ADMIN_PASSWORD" saveworld >/dev/null; }
     flush_on()  { :; }
     ;;
   *) echo "✗ Unknown game '$game'" >&2; exit 1 ;;
@@ -57,7 +65,7 @@ fi
 [[ -d "$data" ]] || { echo "✗ Data dir not found: $data" >&2; exit 1; }
 
 echo "→ [$game] creating $archive"
-tar -czf "$archive" -C "$(dirname "$data")" "$(basename "$data")"
+tar -czhf "$archive" -C "$(dirname "$data")" "$(basename "$data")"   # -h: follow the data symlink to the HDD
 size="$(du -h "$archive" | cut -f1)"
 echo "✓ [$game] snapshot ${size}"
 

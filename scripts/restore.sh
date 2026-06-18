@@ -10,8 +10,13 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-# shellcheck source=/dev/null
-[[ -f "$ROOT/.env" ]] && set -a && . "$ROOT/.env" && set +a
+# Load .env safely — values can contain spaces/quotes (e.g. Gabriel's ARK),
+# so parse KEY=VALUE rather than `source` it as bash.
+if [[ -f "$ROOT/.env" ]]; then
+  while IFS='=' read -r _k _v; do
+    [[ "$_k" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] && export "$_k=$_v"
+  done < "$ROOT/.env"
+fi
 
 game="${1:?Specify a game: minecraft | palworld | ark-se}"
 choice="${2:-}"
