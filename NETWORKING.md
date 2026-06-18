@@ -36,20 +36,19 @@ ip link                  # MAC (the link/ether address)
 Forward **only the game you're running** (you run one at a time). Point each
 rule at the reserved LAN IP from step 1, same external and internal port:
 
-| Game       | Required (the game port) | Optional (server-browser listing) |
-|------------|--------------------------|------------------------------------|
-| Minecraft  | `25565/tcp`              | —                                  |
-| Palworld   | `8211/udp`               | `27015/udp` (Steam query)          |
-| ARK        | `7777/udp`               | `27015/udp` (Steam query)          |
+| Game       | Required (game)         | For server-browser listing |
+|------------|-------------------------|----------------------------|
+| Minecraft  | `25565/tcp`             | —                          |
+| Palworld   | `8211/udp`              | `27015/udp` (Steam query)  |
+| ARK        | `7777/udp` + `7778/udp` | `27015/udp` (Steam query)  |
 
 Match the protocol exactly — Minecraft is **TCP**, Palworld/ARK are **UDP**.
 
-The **game port alone is enough to connect** by address (which is how friends
-join via your domain). The query port `27015/udp` only makes the server
-**appear in the in-game / Steam worlds list** — forward it if you want that
-visibility, skip it for a smaller attack surface. (ARK's legacy `7778/udp` raw
-socket isn't needed on current builds.) `27015` is shared by Palworld and ARK,
-so a single rule covers whichever you're running.
+ARK needs **both** `7777` (game) and `7778` (raw socket) — it binds and uses both,
+and connections fail with only `7777` open (learned the hard way). The query port
+`27015/udp` makes the server **appear in the in-game / Steam browser** and is
+needed to add it by favourite; it's shared by Palworld and ARK, so one rule covers
+whichever you're running.
 
 ## 3. Open the same ports on the host (UFW)
 

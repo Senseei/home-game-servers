@@ -155,12 +155,19 @@ Hard-won notes from first standing this up:
   ark-server ss -uln` as the unprivileged `steam` user **silently hides UDP sockets**
   (false "no port"). Check from a sidecar instead:
   `docker run --rm --net container:ark-server alpine sh -c 'apk add -q iproute2; ss -uln'`
-  — you want `7777` and `27015` bound, plus `27020` (RCON) in `LISTEN`.
+  — you want `7777`, `7778`, and `27015` bound, plus `27020` (RCON) in `LISTEN`.
 - **`Invalid steamcmd_user in config file`** — cosmetic arkmanager warning; it
   breaks `arkmanager status`/`rconcmd`, but the server's RCON port works fine.
 - **`[S_API FAIL] SteamAPI_Init() failed`** — benign; every steamcmd ARK server
   prints it (no Steam *client* running). Not an error.
-- **If ports are bound but friends still can't connect** — the bridge-network UDP
-  publish can be flaky (hermsi issue #89). Switch the service to `network_mode: host`
-  (and drop the `ports:` block). Note: in host mode RCON is no longer auto-bound to
-  localhost — restrict `27020` another way (UFW / never forward it).
+- **Host networking is ON (`network_mode: host` in the compose)** — Docker's bridge
+  userland UDP proxy mangles game-server responses for *remote* clients (works
+  locally, fails from other machines; hermsi issue #89), so ARK binds directly on
+  the host NIC instead. Consequences: UFW now governs these ports
+  (`sudo ufw allow 7777/udp 7778/udp 27015/udp`), and RCON `27020` is no longer
+  auto-localhost — UFW's default-deny keeps it private (never forward it).
+- **Joining your OWN server from the same LAN** fails via the public domain or the
+  Steam-client browser — that's **NAT loopback**, which most routers won't hairpin.
+  Connect by **LAN IP** instead: in-game *Join ARK → Session Filter → LAN* (or
+  *Favorites* after adding `LANIP:27015` in Steam). Friends from outside use the
+  domain normally. (Console `open LANIP:7777` also works, but not with a password.)

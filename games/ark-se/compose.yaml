@@ -13,18 +13,21 @@ services:
     # NOTE: no-new-privileges is intentionally OMITTED here — this image's boot runs
     # the setgid `crontab` binary as the steam user, and no-new-privileges neuters
     # setgid → crontab fails (mkstemp: Permission denied) and the server crash-loops.
-    # Other hardening stays (non-root steam user, pids cap, RCON bound to localhost).
+    # Other hardening stays (non-root steam user, pids cap).
     # ARK's Linux server HANGS at "Setting breakpad minidump" if the open-files limit
     # is too low (Docker default soft=1024); the server needs ~100k to finish loading.
     ulimits:
       nofile:
         soft: 100000
         hard: 100000
-    ports:
-      - "7777:7777/udp"             # game port (UDP)
-      - "7778:7778/udp"             # raw socket (UDP)
-      - "27015:27015/udp"           # Steam query (UDP)
-      - "127.0.0.1:27020:27020/tcp" # RCON (TCP) — localhost ONLY; enabled by default in this image
+    # HOST networking (no `ports:` block in this mode). Docker's bridge userland UDP
+    # proxy mangles the response source-port for REMOTE clients, so the Steam query
+    # and game connects fail from any other machine (work only locally). Host mode
+    # binds ARK directly on the host NIC and fixes that. Ports: 7777/udp (game),
+    # 27015/udp (query), 27020/tcp (RCON).
+    # ⚠ RCON 27020 is NO LONGER localhost-only in host mode — block LAN/WAN access
+    #   with UFW (`sudo ufw deny 27020/tcp`); never port-forward it on the router.
+    network_mode: host
     environment:
       PUID: "${PUID}"
       PGID: "${PGID}"
