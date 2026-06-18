@@ -19,16 +19,7 @@ else
   echo "✓ Docker present"
 fi
 
-# 2) Tailscale (so friends reach the server through CGNAT) ────────────────────
-if ! need tailscale; then
-  echo "→ installing Tailscale…"
-  curl -fsSL https://tailscale.com/install.sh | sh
-  echo "  ✓ run 'sudo tailscale up' then share your tailnet with friends"
-else
-  echo "✓ Tailscale present"
-fi
-
-# 3) rclone (offsite backups) ─────────────────────────────────────────────────
+# 2) rclone (offsite backups) ─────────────────────────────────────────────────
 if ! need rclone; then
   echo "→ installing rclone…"
   curl -fsSL https://rclone.org/install.sh | sudo bash
@@ -37,7 +28,7 @@ else
   echo "✓ rclone present"
 fi
 
-# 4) Keep the laptop awake with the lid closed ───────────────────────────────
+# 3) Keep the laptop awake with the lid closed ───────────────────────────────
 # A closed lid suspending the machine would kill the server. Disable lid-sleep.
 if [[ -f /etc/systemd/logind.conf ]]; then
   echo "→ disabling suspend-on-lid-close (server must stay awake)…"
@@ -47,14 +38,17 @@ if [[ -f /etc/systemd/logind.conf ]]; then
   echo "  ✓ lid-close will no longer suspend the machine"
 fi
 
-# 5) Firewall: only needed if you port-forward instead of using Tailscale ─────
+# 4) Firewall: open the game ports you port-forward (see NETWORKING.md) ───────
 echo
-echo "Firewall note:"
-echo "  • Using Tailscale (recommended)? You don't need to open any public ports."
-echo "  • Port-forwarding instead? Open the game ports on UFW + your router, e.g.:"
-echo "      sudo ufw allow 25565/tcp     # Minecraft"
-echo "      sudo ufw allow 8211/udp      # Palworld"
-echo "      sudo ufw allow 7777,7778/udp # ARK"
-echo "    and NEVER open the RCON ports (25575 / 27020)."
+echo "Firewall note (full walkthrough in NETWORKING.md):"
+echo "  1. DHCP-reserve this laptop's LAN IP, then port-forward the game ports"
+echo "     on your router to it."
+echo "  2. Open the SAME game ports on UFW — only the game you're running, e.g.:"
+echo "      sudo ufw allow 25565/tcp        # Minecraft"
+echo "      sudo ufw allow 8211/udp         # Palworld game"
+echo "      sudo ufw allow 27015/udp        # Palworld/ARK Steam query"
+echo "      sudo ufw allow 7777,7778/udp    # ARK game + raw socket"
+echo "  3. NEVER forward or open the RCON ports (25575 / 27020) — they stay"
+echo "     bound to 127.0.0.1."
 echo
 echo "✓ host setup complete. Next: cp .env.example .env && edit it."

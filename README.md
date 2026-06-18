@@ -13,7 +13,7 @@ games/<game>/compose.yaml   one Compose file per game (the server definition)
 scripts/ctl.sh              up / down / logs / console / status
 scripts/backup.sh           RCON save-flush → tarball → rotate → offsite
 scripts/restore.sh          restore a snapshot (local or offsite)
-scripts/host-setup.sh       one-time laptop setup (Docker, Tailscale, rclone…)
+scripts/host-setup.sh       one-time laptop setup (Docker, rclone, lid-sleep…)
 systemd/                    timer templates for hands-off backups
 .github/workflows/ci.yaml   lint + compose validation
 ```
@@ -32,30 +32,25 @@ systemd/                    timer templates for hands-off backups
 
 ```bash
 git clone <your-repo> && cd home-game-servers
-./scripts/host-setup.sh          # installs Docker, Tailscale, rclone; disables lid-sleep
+./scripts/host-setup.sh          # installs Docker, rclone; disables lid-sleep
 cp .env.example .env             # then edit .env — set passwords, RAM, mods
 ```
 
 ## 2. Let your friends connect (read this — it's the part that bites people)
 
-Most Brazilian home connections are behind **CGNAT**, so you have no public IPv4
-and port-forwarding won't work. Check: if your router's WAN IP ≠ what
-[whatismyip.com](https://whatismyip.com) shows, you're behind CGNAT.
+This host has a **real public IP**, so friends connect directly — no VPN. The
+model is: reserve the laptop's LAN IP → port-forward the game ports on your
+router → open the same ports on UFW → give friends a stable name via your
+router's **dynamic DNS** client (optionally fronted by your own domain). RCON
+stays bound to `127.0.0.1` and is never forwarded.
 
-**Recommended fix — Tailscale** (already installed by `host-setup.sh`):
+Full walkthrough — DHCP reservation, per-game ports, UFW commands, dynamic DNS,
+and the custom-domain CNAME/SRV trick — is in **[NETWORKING.md](NETWORKING.md)**.
+Because you're publicly exposed, use strong passwords and `docker compose pull`
+regularly.
 
-```bash
-sudo tailscale up
-```
-
-Have each friend install Tailscale and join your tailnet. They then connect to
-the server using your laptop's Tailscale IP (`100.x.y.z`) instead of a public
-one — e.g. Minecraft → `100.x.y.z:25565`. This works through CGNAT, exposes
-nothing to the public internet, and supports UDP (Palworld/ARK). You connect
-locally via `localhost`.
-
-> Prefer a real public IP? Either ask your ISP to take you off CGNAT, or run a
-> tiny cloud VPS as a WireGuard relay pointing back here. Tailscale is simpler.
+> Behind CGNAT with no public IP? Port-forwarding can't work there — if you ever
+> need CGNAT traversal, see Tailscale.
 
 ## 3. Run a server
 
@@ -70,11 +65,14 @@ You typically run **one game at a time** (16 GB each for Palworld/ARK).
 
 ## 4. Mods
 
-- **Minecraft** — set `MC_MODRINTH_PROJECTS` in `.env` (comma-separated Modrinth
-  slugs) for auto-download, or drop `.jar` plugins into `games/minecraft/plugins/`.
+- **Minecraft** — runs a **CurseForge modpack** (`CF_API_KEY` + `MC_CF_MODPACK` in
+  `.env`); every player installs the same pack. See
+  [`games/minecraft/README.md`](games/minecraft/README.md).
 - **ARK** — set `ARK_MODS` to comma-separated Steam Workshop IDs; the server
-  downloads them on boot.
-- **Palworld** — mostly config-driven via `games/palworld/data/.../PalWorldSettings.ini`.
+  downloads them on boot. Server settings/difficulty:
+  [`games/ark-se/README.md`](games/ark-se/README.md).
+- **Palworld** — config-driven; importing an existing world:
+  [`games/palworld/README.md`](games/palworld/README.md).
 
 ## 5. Backups
 
@@ -97,7 +95,7 @@ rclone remote (`rclone config`) to **Backblaze B2** (10 GB free) or
 
 - [ ] `.env` is gitignored (it is) and never committed
 - [ ] RCON ports stay bound to `127.0.0.1` (they are, in the compose files)
-- [ ] Using Tailscale, or only the game ports forwarded — never RCON
+- [ ] Only the game ports forwarded + opened on UFW — never RCON
 - [ ] `docker` updates pulled periodically (`docker compose pull`)
 
 ## CI

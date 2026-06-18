@@ -10,6 +10,8 @@ services:
     container_name: palworld-server
     restart: unless-stopped
     stop_grace_period: 30s
+    security_opt:
+      - no-new-privileges:true       # block privilege escalation inside the container
     ports:
       - "8211:8211/udp"             # game port (UDP)
       - "27015:27015/udp"           # Steam query port (UDP)
@@ -37,3 +39,4 @@ services:
       resources:
         limits:
           memory: "${PAL_MEMORY}"
+          pids: 512                  # cap process count → defuses fork bombs (raise if the server ever hits it)

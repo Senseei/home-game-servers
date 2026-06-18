@@ -1,5 +1,6 @@
-# Minecraft (Paper) — github.com/itzg/docker-minecraft-server
+# Minecraft (CurseForge modpack) — github.com/itzg/docker-minecraft-server
 # Full env reference: https://docker-minecraft-server.readthedocs.io
+# Setup (API key, picking a pack, client install): see games/minecraft/README.md
 #
 #   ../../scripts/ctl.sh up minecraft
 #
@@ -11,27 +12,29 @@ services:
     stop_grace_period: 90s          # let the world save on shutdown
     tty: true
     stdin_open: true
+    security_opt:
+      - no-new-privileges:true       # block privilege escalation inside the container
+    pids_limit: 512                  # cap process count → defuses fork bombs (raise if the server ever hits it)
     ports:
       - "25565:25565"               # Java game port (TCP)
       - "127.0.0.1:25575:25575"     # RCON — localhost ONLY, never expose publicly
     environment:
       EULA: "TRUE"
-      TYPE: "PAPER"                  # high-performance Spigot fork; supports plugins
-      VERSION: "${MC_VERSION}"
-      MEMORY: "${MC_MEMORY}"
+      # CurseForge modpack server (Forge/Fabric). Every player must install the SAME pack.
+      TYPE: "AUTO_CURSEFORGE"
+      CF_API_KEY: "${CF_API_KEY}"     # free key from console.curseforge.com (see .env)
+      CF_PAGE_URL: "${MC_CF_MODPACK}" # modpack page URL or slug; the pack sets the MC version + loader
+      MEMORY: "${MC_MEMORY}"          # modpacks are hungry — 4G+ recommended
       USE_AIKAR_FLAGS: "true"        # tuned G1GC flags for Minecraft
       TZ: "${TZ}"
       ENABLE_RCON: "true"
       RCON_PASSWORD: "${RCON_PASSWORD}"
-      # Auto-download plugins/mods from Modrinth on boot (comma-separated slugs):
-      MODRINTH_PROJECTS: "${MC_MODRINTH_PROJECTS}"
       # Idle the JVM when no players are connected; wakes on connect.
       ENABLE_AUTOPAUSE: "TRUE"
       AUTOPAUSE_TIMEOUT_EST: "600"   # seconds of no players before pausing
+      MAX_TICK_TIME: "-1"            # required with autopause on modded: stops the watchdog killing the server on resume
     volumes:
-      - ./data:/data                 # world + config + plugins live here
-      # Drop .jar files here to hand-install plugins (in addition to MODRINTH_PROJECTS):
-      - ./plugins:/plugins:ro
+      - ./data:/data                 # world + config + mods live here (AUTO_CURSEFORGE manages ./data/mods)
     healthcheck:
       test: ["CMD", "mc-health"]
       start_period: 2m

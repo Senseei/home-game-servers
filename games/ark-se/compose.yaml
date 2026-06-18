@@ -1,6 +1,6 @@
 # ARK: Survival Evolved — hub.docker.com/r/hermsi/ark-server
 # Full env reference: https://github.com/Hermsi1337/docker-ark-server
-# NOTE: verify env names against the upstream README before first run.
+# Server settings (difficulty, rates) + config workflow: see games/ark-se/README.md
 #
 #   ../../scripts/ctl.sh up ark-se
 #
@@ -10,11 +10,21 @@ services:
     container_name: ark-server
     restart: unless-stopped
     stop_grace_period: 90s          # ARK needs time to saveworld on shutdown
+    # NOTE: no-new-privileges is intentionally OMITTED here — this image's boot runs
+    # the setgid `crontab` binary as the steam user, and no-new-privileges neuters
+    # setgid → crontab fails (mkstemp: Permission denied) and the server crash-loops.
+    # Other hardening stays (non-root steam user, pids cap, RCON bound to localhost).
+    # ARK's Linux server HANGS at "Setting breakpad minidump" if the open-files limit
+    # is too low (Docker default soft=1024); the server needs ~100k to finish loading.
+    ulimits:
+      nofile:
+        soft: 100000
+        hard: 100000
     ports:
       - "7777:7777/udp"             # game port (UDP)
       - "7778:7778/udp"             # raw socket (UDP)
       - "27015:27015/udp"           # Steam query (UDP)
-      - "127.0.0.1:27020:27020"     # RCON — localhost ONLY
+      - "127.0.0.1:27020:27020/tcp" # RCON (TCP) — localhost ONLY; enabled by default in this image
     environment:
       PUID: "${PUID}"
       PGID: "${PGID}"
@@ -25,13 +35,16 @@ services:
       ADMIN_PASSWORD: "${ADMIN_PASSWORD}"
       MAX_PLAYERS: "${ARK_MAX_PLAYERS}"
       # Steam Workshop mod IDs (comma-separated); the server downloads them on boot:
-      MODS: "${ARK_MODS}"
-      BACKUP_ONSTART: "true"
+      GAME_MOD_IDS: "${ARK_MODS}"
       UPDATE_ON_START: "true"
     volumes:
-      - ./data:/app/.steam          # steamcmd + server binaries (large, ~30GB)
-      - ./server:/ark               # world saves + config live here
+      # Image's NATIVE single volume /app: steamcmd + binaries (~22GB), world saves,
+      # arkmanager config, AND GameUserSettings.ini / Game.ini all live here.
+      # Do NOT override ARK_SERVER_VOLUME: the image bakes ARK_TOOLS_DIR=/app/arkmanager
+      # at build time, so an override splits binaries from config and the server won't boot.
+      - ./server:/app
     deploy:
       resources:
         limits:
           memory: "${ARK_MEMORY}"
+          pids: 512                  # cap process count → defuses fork bombs (raise if the server ever hits it)
