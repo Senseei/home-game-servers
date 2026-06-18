@@ -171,3 +171,17 @@ Hard-won notes from first standing this up:
   Connect by **LAN IP** instead: in-game *Join ARK → Session Filter → LAN* (or
   *Favorites* after adding `LANIP:27015` in Steam). Friends from outside use the
   domain normally. (Console `open LANIP:7777` also works, but not with a password.)
+
+## Reproducible config
+
+The live `Game.ini` / `GameUserSettings.ini` are gitignored (under `server/`), so
+this server's gameplay ruleset is captured as version-controlled samples:
+
+- [`GameUserSettings.ini.example`](GameUserSettings.ini.example) — difficulty,
+  rates, loot, breeding (`[ServerSettings]` keys to **merge** into the live file).
+- [`Game.ini.example`](Game.ini.example) — player & dino per-level stats, mating
+  (safe to **fully replace** the live `Game.ini`).
+
+Apply with the server **stopped**, then start (§"Apply workflow" above). Current
+ruleset: lvl-300 wilds, PvE, 2× XP, 5× taming, 4× loot, fast breeding tuned for
+easy 100% imprints, boosted player stats + dino speed/stamina/weight.
