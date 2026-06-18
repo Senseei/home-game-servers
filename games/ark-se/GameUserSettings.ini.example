@@ -22,6 +22,8 @@ bDisableStructurePlacementCollision=True   ; place structures overlapping / no-c
 ; Rates
 XPMultiplier=2.0
 TamingSpeedMultiplier=5.0
+PlayerCharacterHealthRecoveryMultiplier=3.0    ; player HP regen ×3
+DinoCharacterHealthRecoveryMultiplier=3.0      ; tamed dino HP regen ×3
 
 ; Loot quality — greatly boosted
 SupplyCrateLootQualityMultiplier=4.0
