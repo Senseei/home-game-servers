@@ -1,8 +1,11 @@
 # home-game-servers — ergonomic wrappers around scripts/ctl.sh
-# Usage:  make up GAME=minecraft   /   make backup GAME=palworld
+# Usage:  make           (interactive menu)
+#         make up GAME=minecraft   /   make backup GAME=palworld
 GAME ?= minecraft
+.DEFAULT_GOAL := menu
 
-.PHONY: up down restart logs console status backup restore setup
+.PHONY: menu up down restart logs console status backup restore setup
+menu:     ; @./scripts/ctl.sh menu
 up:       ; @./scripts/ctl.sh up $(GAME)
 down:     ; @./scripts/ctl.sh down $(GAME)
 restart:  ; @./scripts/ctl.sh restart $(GAME)

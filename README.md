@@ -55,11 +55,17 @@ regularly.
 ## 3. Run a server
 
 ```bash
-make up GAME=minecraft        # or: ./scripts/ctl.sh up minecraft
+./ctl                         # ⭐ interactive menu — pick game + action, and ARK's map
+# …or drive it directly:
+make up GAME=minecraft        # = ./scripts/ctl.sh up minecraft
 make logs GAME=minecraft
 make status
 make down GAME=minecraft
 ```
+
+`./ctl` (or bare `make`) opens a menu listing each game with live status; pick one,
+pick an action, and for **ARK → up** it asks which map to launch. (`fzf` gives an
+arrow-key/filter menu if installed; otherwise it's a numbered picker.)
 
 You typically run **one game at a time** (16 GB each for Palworld/ARK).
 
