@@ -172,16 +172,40 @@ Hard-won notes from first standing this up:
   *Favorites* after adding `LANIP:27015` in Steam). Friends from outside use the
   domain normally. (Console `open LANIP:7777` also works, but not with a password.)
 
-## Reproducible config
+## Per-map config & mods
 
 The live `Game.ini` / `GameUserSettings.ini` are gitignored (under `server/`), so
-this server's gameplay ruleset is captured as version-controlled samples:
+each map's gameplay ruleset + mod list is version-controlled under `maps/`:
 
-- [`GameUserSettings.ini.example`](GameUserSettings.ini.example) — difficulty,
-  rates, loot, breeding (`[ServerSettings]` keys to **merge** into the live file).
-- [`Game.ini.example`](Game.ini.example) — player & dino per-level stats, mating
-  (safe to **fully replace** the live `Game.ini`).
+```
+games/ark-se/
+  maps/<Map>/
+    GameUserSettings.ini   # this map's [ServerSettings] (MERGED into the live file)
+    Game.ini               # this map's [/script…] block (REPLACES the live file)
+    mods                   # Workshop IDs this map loads (one per line)
+  mods.tsv                 # mod registry: ID <TAB> name (auto-filled from Steam)
+```
 
-Apply with the server **stopped**, then start (§"Apply workflow" above). Current
-ruleset: lvl-300 wilds, PvE, 2× XP, 5× taming, 4× loot, fast breeding tuned for
-easy 100% imprints, boosted player stats + dino speed/stamina/weight.
+ARK keeps **saves** per-map natively; this adds per-map **config + mods**. Starting a
+map runs `scripts/ark.sh apply <Map>`: it sets `ARK_MAP`/`ARK_MODS`, **merges** that
+map's `[ServerSettings]` into the live file (keeping image-managed keys like passwords),
+and replaces `Game.ini`.
+
+**Via the menu** (`./ctl` → `ark-se`):
+- **up** → pick a map → loads that map's config + mods, then starts.
+- **edit-mods** → pick a map → toggle its mods by name (gum), saved to `maps/<Map>/mods`.
+
+**Via `scripts/ark.sh`:**
+```
+ark.sh maps                  # list configured maps
+ark.sh apply   <Map>         # load a map's config + mods (the menu calls this)
+ark.sh map-new <Map> [from]  # scaffold a new map (copies TheCenter by default)
+ark.sh mods-sync             # fetch any unknown mod names from Steam into mods.tsv
+ark.sh mods-edit <Map>       # gum picker for a map's mods
+```
+
+Add a map: `ark.sh map-new Ragnarok` → tweak `maps/Ragnarok/{GameUserSettings,Game}.ini`
+→ `ark.sh mods-edit Ragnarok`. The [`*.ini.example`](GameUserSettings.ini.example) files
+are the baseline template (= TheCenter's current ruleset): lvl-300 wilds, PvE, 2× XP,
+10× taming, 3× harvest, ½ dino density, regen ×3, fast breeding (easy 100% imprints),
+flyer carry + speed leveling, cave + no-collision building, 14 mods.

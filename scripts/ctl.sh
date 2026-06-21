@@ -13,8 +13,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GAMES_DIR="$ROOT/games"
 VALID_GAMES=(minecraft palworld ark-se)
-# Official ARK maps — all shipped inside the server install (no extra download).
-ARK_MAPS=(TheIsland Ragnarok Fjordur CrystalIsles TheCenter Valguero_P ScorchedEarth_P Aberration_P Extinction Genesis Gen2 LostIsland)
+# ARK per-map config + mods live in games/ark-se/maps/, driven by scripts/ark.sh.
 
 die() { echo "✗ $*" >&2; exit 1; }
 
@@ -57,12 +56,23 @@ menu() {
   local game="${choice%% *}"
   [[ "$game" == quit ]] && return 0
 
-  local action; action=$(pick "action>" up down restart logs console backup status) || return 0
+  local actions=(up down restart logs console backup status)
+  [[ "$game" == ark-se ]] && actions=(up edit-mods down restart logs console backup status)
+  local action; action=$(pick "action>" "${actions[@]}") || return 0
 
+  # ARK: edit a map's mod list (gum) — does not start the server
+  if [[ "$game" == ark-se && "$action" == edit-mods ]]; then
+    local emaps; mapfile -t emaps < <("$ROOT/scripts/ark.sh" maps)
+    local emap; emap=$(pick "edit mods for map>" "${emaps[@]}") || return 0
+    "$ROOT/scripts/ark.sh" mods-edit "$emap"
+    return 0
+  fi
+
+  # ARK: pick the map, load its per-map config + mods, then start
   if [[ "$game" == ark-se && "$action" == up ]]; then
-    local map; map=$(pick "ARK map (current: $(env_get ARK_MAP))>" "${ARK_MAPS[@]}") || return 0
-    sed -i "s/^ARK_MAP=.*/ARK_MAP=$map/" "$ROOT/.env"
-    echo "→ ARK map set to $map"
+    local amaps; mapfile -t amaps < <("$ROOT/scripts/ark.sh" maps)
+    local map; map=$(pick "ARK map (current: $(env_get ARK_MAP))>" "${amaps[@]}") || return 0
+    "$ROOT/scripts/ark.sh" apply "$map"
   fi
 
   case "$action" in
