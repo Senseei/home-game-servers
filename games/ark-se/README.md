@@ -174,43 +174,36 @@ Hard-won notes from first standing this up:
 
 ## Per-map config & mods
 
-The live `Game.ini` / `GameUserSettings.ini` are gitignored (under `server/`), so
-each map's gameplay ruleset + mod list is version-controlled under `maps/`:
+The live `Game.ini` / `GameUserSettings.ini` are gitignored (under `server/`); the
+version-controlled config lives here, with a **shared default that maps inherit**:
 
 ```
 games/ark-se/
-  maps/<Map>/
-    GameUserSettings.ini   # this map's [ServerSettings] (MERGED into the live file)
-    Game.ini               # this map's [/script…] block (REPLACES the live file)
-    mods                   # Workshop IDs this map loads (one per line)
+  default/                 # the base config EVERY map inherits
+    GameUserSettings.ini · Game.ini · mods
+  maps/<Map>/              # only exists once you CUSTOMIZE a map (a copy of default to edit)
   mods.tsv                 # mod registry: ID <TAB> name (auto-filled from Steam)
 ```
 
-ARK keeps **saves** per-map natively; this adds per-map **config + mods**. Starting a
-map runs `scripts/ark.sh apply <Map>`: it sets `ARK_MAP`/`ARK_MODS`, **merges** that
-map's `[ServerSettings]` into the live file (keeping image-managed keys like passwords),
-and replaces `Game.ini`.
+A map **inherits `default/`** until you *customize* it. Customizing copies `default/`
+into `maps/<Map>/` to edit; *uncustomizing* deletes that copy and the map inherits default
+again. Saves are per-map natively and are never touched by any of this.
 
-**Via the menu** (`./ctl` → `ark-se`) — the whole workflow, no CLI needed:
-- **up** → pick a map → loads its config + mods, then starts.
-- **edit-mods** → pick a map → toggle its mods by name (gum checklist).
-- **edit-config** → pick a map → opens its `.ini` files in `$EDITOR`.
-- **add-mod** → paste a Workshop ID → name auto-fetched, added to the registry.
-- **new-map** / **del-map** → scaffold a map from TheCenter / remove a map's config (save kept).
+Starting a map runs `scripts/ark.sh apply <Map>`: sets `ARK_MAP`/`ARK_MODS` and loads
+that map's config (its custom copy if any, else `default/`) — **merging** `[ServerSettings]`
+into the live file (keeping image-managed keys like passwords) and replacing `Game.ini`.
 
-**Via `scripts/ark.sh`** (the menu just calls these):
-```
-ark.sh maps                  # list configured maps
-ark.sh apply    <Map>        # load a map's config + mods
-ark.sh map-new  <Map> [from] # scaffold a new map (copies TheCenter by default)
-ark.sh map-del  <Map>        # remove a map's config (world save kept)
-ark.sh mods-sync             # fetch any unknown mod names from Steam into mods.tsv
-ark.sh mods-add  <id>        # add one mod to the registry by Workshop ID
-ark.sh mods-edit <Map>       # gum picker for a map's mods
-```
+**Everything's in the menu** (`./ctl` → `ark-se`):
+- **up** → pick any map (official or customized) → loads its config+mods → starts. An
+  untouched map just inherits `default/`.
+- **customize** / **uncustomize** → give a map its own config (copy of default) / delete it.
+- **edit-config** → pick `default` or a customized map → opens its `.ini` in `$EDITOR`
+  (auto-customizes the map first).
+- **edit-mods** → pick `default` or a map → toggle mods by name (gum); auto-customizes.
+- **add-mod** → paste a Workshop ID → name auto-fetched into the registry.
 
-Add a map: `ark.sh map-new Ragnarok` → tweak `maps/Ragnarok/{GameUserSettings,Game}.ini`
-→ `ark.sh mods-edit Ragnarok`. The [`*.ini.example`](GameUserSettings.ini.example) files
-are the baseline template (= TheCenter's current ruleset): lvl-300 wilds, PvE, 2× XP,
-10× taming, 3× harvest, ½ dino density, regen ×3, fast breeding (easy 100% imprints),
-flyer carry + speed leveling, cave + no-collision building, 14 mods.
+[`scripts/ark.sh`](../../scripts/ark.sh) (`selectable | maps | apply | customize |
+uncustomize | edit-config | edit-mods | mods-add | mods-sync`) backs all of these.
+Current `default/` ruleset: lvl-300 wilds, PvE, 2× XP, 10× taming, 3× harvest, ½ dino
+density, regen ×3, fast breeding (easy 100% imprints), flyer carry + speed leveling,
+cave + no-collision building, 14 mods.

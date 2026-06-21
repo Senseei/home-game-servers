@@ -63,23 +63,41 @@ menu() {
   [[ "$game" == quit ]] && return 0
 
   local actions=(up down restart logs console backup status)
-  [[ "$game" == ark-se ]] && actions=(up edit-mods edit-config add-mod new-map del-map down restart logs console backup status)
+  [[ "$game" == ark-se ]] && actions=(up customize uncustomize edit-config edit-mods add-mod down restart logs console backup status)
   local action; action=$(pick "action>" "${actions[@]}") || return 0
 
-  # ARK: edit a map's mod list (gum) — does not start the server
-  if [[ "$game" == ark-se && "$action" == edit-mods ]]; then
-    local emaps; mapfile -t emaps < <("$ROOT/scripts/ark.sh" maps)
-    local emap; emap=$(pick "edit mods for map>" "${emaps[@]}") || return 0
-    "$ROOT/scripts/ark.sh" mods-edit "$emap"
+  # ARK: customize a map — give it its own config (copies default/)
+  if [[ "$game" == ark-se && "$action" == customize ]]; then
+    local _cs; mapfile -t _cs < <("$ROOT/scripts/ark.sh" selectable)
+    local cs; cs=$(pick "customize which map>" "${_cs[@]}") || return 0
+    "$ROOT/scripts/ark.sh" customize "${cs%% *}"
     return 0
   fi
 
-  # ARK: edit a map's config (.ini) in $EDITOR
+  # ARK: uncustomize — delete a map's custom config, revert to default
+  if [[ "$game" == ark-se && "$action" == uncustomize ]]; then
+    local _um; mapfile -t _um < <("$ROOT/scripts/ark.sh" maps)
+    [[ ${#_um[@]} -eq 0 ]] && { echo "no customized maps yet"; return 0; }
+    local um; um=$(pick "revert which map to default>" "${_um[@]}") || return 0
+    if command -v gum >/dev/null 2>&1; then gum confirm "Delete $um custom config? (world save kept)" || return 0
+    else local yn; read -rp "Delete $um custom config? [y/N] " yn; [[ "$yn" == [yY] ]] || return 0; fi
+    "$ROOT/scripts/ark.sh" uncustomize "$um"
+    return 0
+  fi
+
+  # ARK: edit config — default, or a customized map (auto-customizes) — in $EDITOR
   if [[ "$game" == ark-se && "$action" == edit-config ]]; then
-    local cmaps; mapfile -t cmaps < <("$ROOT/scripts/ark.sh" maps)
-    local cmap; cmap=$(pick "edit config for map>" "${cmaps[@]}") || return 0
-    "${EDITOR:-nano}" "$GAMES_DIR/ark-se/maps/$cmap/GameUserSettings.ini" "$GAMES_DIR/ark-se/maps/$cmap/Game.ini"
-    echo "→ edits apply next time you 'up' $cmap"
+    local _ec; mapfile -t _ec < <(printf 'default\n'; "$ROOT/scripts/ark.sh" maps)
+    local ec; ec=$(pick "edit config for>" "${_ec[@]}") || return 0
+    "$ROOT/scripts/ark.sh" edit-config "$ec"
+    return 0
+  fi
+
+  # ARK: edit mods — default, or a customized map (auto-customizes) — gum checklist
+  if [[ "$game" == ark-se && "$action" == edit-mods ]]; then
+    local _em; mapfile -t _em < <(printf 'default\n'; "$ROOT/scripts/ark.sh" maps)
+    local em; em=$(pick "edit mods for>" "${_em[@]}") || return 0
+    "$ROOT/scripts/ark.sh" edit-mods "$em"
     return 0
   fi
 
@@ -90,28 +108,11 @@ menu() {
     return 0
   fi
 
-  # ARK: scaffold a new map (copies TheCenter)
-  if [[ "$game" == ark-se && "$action" == new-map ]]; then
-    local nm; nm=$(ask "new map — ARK code (Ragnarok, Fjordur, Valguero_P…)>") || return 0
-    [[ -n "$nm" ]] && "$ROOT/scripts/ark.sh" map-new "$nm"
-    return 0
-  fi
-
-  # ARK: delete a map's config (the world save is kept)
-  if [[ "$game" == ark-se && "$action" == del-map ]]; then
-    local dmaps; mapfile -t dmaps < <("$ROOT/scripts/ark.sh" maps)
-    local dmap; dmap=$(pick "delete config for map>" "${dmaps[@]}") || return 0
-    if command -v gum >/dev/null 2>&1; then gum confirm "Delete maps/$dmap config? (world save is kept)" || return 0
-    else local yn; read -rp "Delete maps/$dmap config? [y/N] " yn; [[ "$yn" == [yY] ]] || return 0; fi
-    "$ROOT/scripts/ark.sh" map-del "$dmap"
-    return 0
-  fi
-
-  # ARK: pick the map, load its per-map config + mods, then start
+  # ARK: pick a map (official or customized), load its config+mods, then start
   if [[ "$game" == ark-se && "$action" == up ]]; then
-    local amaps; mapfile -t amaps < <("$ROOT/scripts/ark.sh" maps)
-    local map; map=$(pick "ARK map (current: $(env_get ARK_MAP))>" "${amaps[@]}") || return 0
-    "$ROOT/scripts/ark.sh" apply "$map"
+    local _us; mapfile -t _us < <("$ROOT/scripts/ark.sh" selectable)
+    local us; us=$(pick "ARK map (current: $(env_get ARK_MAP))>" "${_us[@]}") || return 0
+    "$ROOT/scripts/ark.sh" apply "${us%% *}"
   fi
 
   case "$action" in
