@@ -11,6 +11,7 @@
 ; Difficulty — max wild dino level 300 (10 × 30)
 DifficultyOffset=1.0
 OverrideOfficialDifficulty=10.0
+DinoCountMultiplier=0.5            ; half the wild dino density
 
 ServerPVE=True
 AllowFlyerCarryPvE=True       ; flyers can carry wild dinos in PvE
