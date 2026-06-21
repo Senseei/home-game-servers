@@ -8,6 +8,7 @@
 ; ─────────────────────────────────────────────────────────────────────────────
 [/script/shootergame.shootergamemode]
 MatingSpeedMultiplier=10.0
+KillXPMultiplier=2.0    ; double XP from kills (stacks on the global XPMultiplier)
 
 ; Player per-level stat multipliers (2.5 baseline; Food/Water 5; Oxygen 10; Melee/Speed 3)
 PerLevelStatsMultiplier_Player[0]=2.5    ; Health
