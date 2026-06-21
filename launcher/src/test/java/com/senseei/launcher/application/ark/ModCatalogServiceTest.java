@@ -1,8 +1,10 @@
 package com.senseei.launcher.application.ark;
 
-import com.senseei.launcher.application.port.ModRegistry;
+import com.senseei.launcher.application.port.ModRegistryRepository;
 import com.senseei.launcher.application.port.WorkshopClient;
+import com.senseei.launcher.domain.ark.MapConfig;
 import com.senseei.launcher.domain.ark.Mod;
+import com.senseei.launcher.domain.ark.ModRegistry;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -14,14 +16,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ModCatalogServiceTest {
 
-    static final class FakeRegistry implements ModRegistry {
-        final List<Mod> mods = new ArrayList<>();
-        @Override public List<Mod> all() { return mods; }
-        @Override public boolean contains(String id) { return mods.stream().anyMatch(m -> m.id().equals(id)); }
-        @Override public void add(Mod m) { mods.add(m); }
-        @Override public String nameOf(String id) {
-            return mods.stream().filter(m -> m.id().equals(id)).map(Mod::name).findFirst().orElse(id);
-        }
+    static final class InMemoryRegistryRepo implements ModRegistryRepository {
+        ModRegistry registry = new ModRegistry(new ArrayList<>());
+        @Override public ModRegistry load() { return registry; }
+        @Override public void save(ModRegistry r) { this.registry = r; }
     }
 
     static final class FakeWorkshop implements WorkshopClient {
@@ -29,37 +27,43 @@ class ModCatalogServiceTest {
         @Override public Map<String, String> titles(List<String> ids) { return titles; }
     }
 
-    @Test
-    void addResolvesNameFromSteam() {
-        FakeRegistry reg = new FakeRegistry();
-        FakeWorkshop ws = new FakeWorkshop();
-        ws.titles = Map.of("731604991", "Structures Plus (S+)");
-
-        Mod added = new ModCatalogService(reg, ws, new InMemoryConfigStore()).addMod("731604991");
-
-        assertEquals("Structures Plus (S+)", added.name());
-        assertTrue(reg.contains("731604991"));
+    private static InMemoryMapConfigRepository repoWithDefaultMods(List<String> mods) {
+        return new InMemoryMapConfigRepository(new MapConfig("default", false, "", "", mods));
     }
 
     @Test
-    void addIsIdempotent() {
-        FakeRegistry reg = new FakeRegistry();
-        reg.add(new Mod("111", "Already"));
-        new ModCatalogService(reg, new FakeWorkshop(), new InMemoryConfigStore()).addMod("111");
-        assertEquals(1, reg.all().size());
+    void addResolvesNameAndDedups() {
+        var reg = new InMemoryRegistryRepo();
+        var ws = new FakeWorkshop();
+        ws.titles = Map.of("731604991", "Structures Plus (S+)");
+        var svc = new ModCatalogService(reg, ws, repoWithDefaultMods(List.of()));
+
+        Mod added = svc.addMod("731604991");
+        assertEquals("Structures Plus (S+)", added.name());
+        assertTrue(reg.load().contains("731604991"));
+
+        svc.addMod("731604991");
+        assertEquals(1, reg.load().all().size());
     }
 
     @Test
     void syncFetchesMissingNames() {
-        FakeRegistry reg = new FakeRegistry();
-        FakeWorkshop ws = new FakeWorkshop();
+        var reg = new InMemoryRegistryRepo();
+        var ws = new FakeWorkshop();
         ws.titles = Map.of("111", "One", "222", "Two");
-        InMemoryConfigStore cfg = new InMemoryConfigStore();
-        cfg.mods.put("default", List.of("111", "222"));
+        var svc = new ModCatalogService(reg, ws, repoWithDefaultMods(List.of("111", "222")));
 
-        int added = new ModCatalogService(reg, ws, cfg).syncRegistry();
+        assertEquals(2, svc.syncRegistry());
+        assertEquals("One", reg.load().nameOf("111"));
+    }
 
-        assertEquals(2, added);
-        assertEquals("One", reg.nameOf("111"));
+    @Test
+    void setMapModsCustomizesAndPersists() {
+        var repo = repoWithDefaultMods(List.of("111"));
+        new ModCatalogService(new InMemoryRegistryRepo(), new FakeWorkshop(), repo)
+                .setMapMods("Ragnarok", List.of("999", "888"));
+
+        assertTrue(repo.exists("Ragnarok"));
+        assertEquals(List.of("999", "888"), repo.load("Ragnarok").modIds());
     }
 }

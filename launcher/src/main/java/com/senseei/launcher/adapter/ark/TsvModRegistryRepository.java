@@ -1,27 +1,32 @@
 package com.senseei.launcher.adapter.ark;
 
-import com.senseei.launcher.application.port.ModRegistry;
+import com.senseei.launcher.application.port.ModRegistryRepository;
 import com.senseei.launcher.domain.ark.Mod;
+import com.senseei.launcher.domain.ark.ModRegistry;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 
-/** ModRegistry backed by games/ark-se/mods.tsv ({@code id<TAB>name} per line). */
-public final class TsvModRegistry implements ModRegistry {
+/** Repository for the {@link ModRegistry} aggregate, backed by games/ark-se/mods.tsv. */
+public final class TsvModRegistryRepository implements ModRegistryRepository {
+
+    private static final String HEADER = """
+            # ARK mod registry — Steam Workshop id <TAB> name.
+            # Managed by the launcher; the per-map mod editor selects from this catalog.
+            """;
 
     private final Path file;
 
-    public TsvModRegistry(Path root) {
+    public TsvModRegistryRepository(Path root) {
         this.file = root.resolve("games/ark-se/mods.tsv");
     }
 
     @Override
-    public List<Mod> all() {
+    public ModRegistry load() {
         List<Mod> mods = new ArrayList<>();
         for (String line : lines()) {
             if (line.startsWith("#") || line.isBlank()) {
@@ -32,27 +37,20 @@ public final class TsvModRegistry implements ModRegistry {
                 mods.add(new Mod(parts[0], parts[1].strip()));
             }
         }
-        return mods;
+        return new ModRegistry(mods);
     }
 
     @Override
-    public boolean contains(String id) {
-        return all().stream().anyMatch(m -> m.id().equals(id));
-    }
-
-    @Override
-    public void add(Mod mod) {
+    public void save(ModRegistry registry) {
+        StringBuilder sb = new StringBuilder(HEADER);
+        for (Mod m : registry.all()) {
+            sb.append(m.id()).append('\t').append(m.name()).append('\n');
+        }
         try {
-            Files.writeString(file, mod.id() + "\t" + mod.name() + "\n",
-                    StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            Files.writeString(file, sb.toString());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-    }
-
-    @Override
-    public String nameOf(String id) {
-        return all().stream().filter(m -> m.id().equals(id)).map(Mod::name).findFirst().orElse(id);
     }
 
     private List<String> lines() {

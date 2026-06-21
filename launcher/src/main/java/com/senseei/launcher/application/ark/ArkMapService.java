@@ -1,72 +1,61 @@
 package com.senseei.launcher.application.ark;
 
-import com.senseei.launcher.application.port.ConfigStore;
 import com.senseei.launcher.application.port.EnvStore;
+import com.senseei.launcher.application.port.LiveConfig;
+import com.senseei.launcher.application.port.MapConfigRepository;
 import com.senseei.launcher.domain.ark.IniMerge;
+import com.senseei.launcher.domain.ark.MapConfig;
 import com.senseei.launcher.domain.ark.OfficialMaps;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * Use-cases for ARK maps. A map inherits {@code default/} until customized; this
- * service holds the inherit-or-custom rule and drives the {@link IniMerge}.
+ * Use-cases for ARK maps — thin orchestration: load the {@link MapConfig}
+ * aggregate, apply it via the {@link IniMerge} domain service, persist.
  */
 public final class ArkMapService {
 
     private static final String SERVER_SETTINGS = "[ServerSettings]";
 
-    private final ConfigStore config;
+    private final MapConfigRepository maps;
+    private final LiveConfig live;
     private final EnvStore env;
 
-    public ArkMapService(ConfigStore config, EnvStore env) {
-        this.config = config;
+    public ArkMapService(MapConfigRepository maps, LiveConfig live, EnvStore env) {
+        this.maps = maps;
+        this.live = live;
         this.env = env;
     }
 
-    /** Official maps plus any customized ones, de-duped + sorted, each marked. */
     public List<MapChoice> selectable() {
         Set<String> names = new TreeSet<>(OfficialMaps.ALL);
-        names.addAll(config.customMaps());
-        List<MapChoice> out = new ArrayList<>();
-        for (String n : names) {
-            out.add(new MapChoice(n, config.mapExists(n)));
-        }
-        return out;
+        names.addAll(maps.customMaps());
+        return names.stream().map(n -> new MapChoice(n, maps.exists(n))).toList();
     }
 
-    /** Loads a map's config + mods into the live server (its custom copy if any, else default). */
     public void apply(String map) {
-        String source = config.mapExists(map) ? map : "default";
-
+        MapConfig cfg = maps.load(map);
         env.set("ARK_MAP", map);
-        env.set("ARK_MODS", String.join(",", config.readModIds(source)));
-
-        String merged = IniMerge.merge(
-                config.readLiveGameUserSettings(),
-                config.readGameUserSettings(source),
-                SERVER_SETTINGS);
-        config.writeLiveGameUserSettings(merged);
-        config.writeLiveGameIni(config.readGameIni(source));
+        env.set("ARK_MODS", String.join(",", cfg.modIds()));
+        String merged = IniMerge.merge(live.gameUserSettings(), cfg.gameUserSettings(), SERVER_SETTINGS);
+        live.write(merged, cfg.gameIni());
     }
 
-    /** Gives a map its own config (a copy of default). Returns false if already custom. */
     public boolean customize(String map) {
-        if (config.mapExists(map)) {
+        if (maps.exists(map)) {
             return false;
         }
-        config.copyDefaultTo(map);
+        maps.save(maps.load("default").asMap(map));
         return true;
     }
 
-    /** Deletes a map's custom config so it inherits default again. False if not custom. */
     public boolean uncustomize(String map) {
-        if (!config.mapExists(map)) {
+        if (!maps.exists(map)) {
             return false;
         }
-        config.deleteMap(map);
+        maps.delete(map);
         return true;
     }
 }

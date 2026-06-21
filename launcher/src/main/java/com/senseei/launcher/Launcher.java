@@ -2,24 +2,26 @@ package com.senseei.launcher;
 
 import com.senseei.launcher.adapter.RepoRoot;
 import com.senseei.launcher.adapter.ark.DotEnvStore;
-import com.senseei.launcher.adapter.ark.FileConfigStore;
+import com.senseei.launcher.adapter.ark.FileLiveConfig;
+import com.senseei.launcher.adapter.ark.FileMapConfigRepository;
 import com.senseei.launcher.adapter.ark.SteamWorkshopClient;
-import com.senseei.launcher.adapter.ark.TsvModRegistry;
+import com.senseei.launcher.adapter.ark.TsvModRegistryRepository;
 import com.senseei.launcher.adapter.docker.ComposeEngine;
 import com.senseei.launcher.application.ServerLifecycle;
 import com.senseei.launcher.application.ark.ArkMapService;
 import com.senseei.launcher.application.ark.ModCatalogService;
-import com.senseei.launcher.application.port.ConfigStore;
 import com.senseei.launcher.application.port.ContainerEngine;
 import com.senseei.launcher.application.port.EnvStore;
-import com.senseei.launcher.application.port.ModRegistry;
+import com.senseei.launcher.application.port.LiveConfig;
+import com.senseei.launcher.application.port.MapConfigRepository;
+import com.senseei.launcher.application.port.ModRegistryRepository;
 import com.senseei.launcher.application.port.WorkshopClient;
 import com.senseei.launcher.cli.CtlCommand;
 import picocli.CommandLine;
 
 import java.nio.file.Path;
 
-/** Entry point: wires the dependency graph (root -> engine -> use-case) and runs the CLI. */
+/** Entry point: wires the dependency graph (root → adapters → use-cases) and runs the CLI. */
 public final class Launcher {
 
     public static void main(String[] args) {
@@ -38,12 +40,13 @@ public final class Launcher {
         ContainerEngine engine = new ComposeEngine(root);
         ServerLifecycle lifecycle = new ServerLifecycle(engine);
 
-        ConfigStore config = new FileConfigStore(root);
+        MapConfigRepository mapConfigs = new FileMapConfigRepository(root);
+        LiveConfig live = new FileLiveConfig(root);
         EnvStore env = new DotEnvStore(root);
-        ModRegistry registry = new TsvModRegistry(root);
+        ModRegistryRepository registry = new TsvModRegistryRepository(root);
         WorkshopClient workshop = new SteamWorkshopClient();
-        ArkMapService arkMaps = new ArkMapService(config, env);
-        ModCatalogService mods = new ModCatalogService(registry, workshop, config);
+        ArkMapService arkMaps = new ArkMapService(mapConfigs, live, env);
+        ModCatalogService mods = new ModCatalogService(registry, workshop, mapConfigs);
 
         return new CommandLine(new CtlCommand(lifecycle, arkMaps, mods))
                 .setExecutionExceptionHandler((ex, cmd, parseResult) -> {
