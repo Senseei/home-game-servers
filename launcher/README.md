@@ -29,8 +29,9 @@ A later step adds a GraalVM `native-image` build for an instant single binary.
 
 ## Migration phases
 1. **done** — lifecycle: `up | down | restart | logs | status`.
-2. ARK domain: maps inherit/custom + the `[ServerSettings]` merge (with tests),
-   `ConfigStore` / `WorkshopClient` / `RconClient` adapters — ark.sh parity.
-3. Backups: RCON flush → tar → rotate → rclone.
+2. **done** — ARK domain (`ctl ark …`): map inherit/custom + the `[ServerSettings]`
+   `IniMerge` (pure, 7 tests); `ConfigStore`/`ModRegistry`/`WorkshopClient`/`EnvStore`
+   ports + adapters; `ArkMapService`/`ModCatalogService` use-cases — ark.sh parity.
+3. Backups: `RconClient` + RCON flush → tar → rotate → rclone.
 4. UI/UX — a clean-slate presentation over the stable core.
 5. Retire the bash scripts; `./ctl` becomes this; CI swaps shellcheck → `mvn test`.

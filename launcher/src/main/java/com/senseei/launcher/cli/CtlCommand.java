@@ -2,6 +2,8 @@ package com.senseei.launcher.cli;
 
 import com.senseei.launcher.application.ServerLifecycle;
 import com.senseei.launcher.application.ServerStatus;
+import com.senseei.launcher.application.ark.ArkMapService;
+import com.senseei.launcher.application.ark.ModCatalogService;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 import picocli.CommandLine.ParentCommand;
@@ -24,15 +26,20 @@ import java.util.concurrent.Callable;
                 CtlCommand.Down.class,
                 CtlCommand.Restart.class,
                 CtlCommand.Logs.class,
-                CtlCommand.Status.class
+                CtlCommand.Status.class,
+                ArkCommand.class
         }
 )
 public final class CtlCommand {
 
     final ServerLifecycle lifecycle;
+    final ArkMapService arkMaps;
+    final ModCatalogService mods;
 
-    public CtlCommand(ServerLifecycle lifecycle) {
+    public CtlCommand(ServerLifecycle lifecycle, ArkMapService arkMaps, ModCatalogService mods) {
         this.lifecycle = lifecycle;
+        this.arkMaps = arkMaps;
+        this.mods = mods;
     }
 
     @Command(name = "up", description = "Start a server.")
