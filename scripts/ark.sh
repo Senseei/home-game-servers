@@ -51,10 +51,19 @@ cmd_apply() {
 
 cmd_map_new() {
   local m="${1:?usage: map-new <Map> [from]}"; local from="${2:-TheCenter}"
+  [[ "$m" =~ ^[A-Za-z0-9_]+$ ]] || die "map name must be an ARK map code (letters/digits/underscore)"
   [[ -d "$MAPS/$m" ]] && die "map '$m' already exists"
   [[ -d "$MAPS/$from" ]] || die "template map '$from' not found"
   cp -r "$MAPS/$from" "$MAPS/$m"
   echo "✓ scaffolded maps/$m (from $from) — tweak its .ini files, then: ark.sh mods-edit $m"
+}
+
+cmd_map_del() {
+  local m="${1:?usage: map-del <Map>}"
+  [[ "$m" =~ ^[A-Za-z0-9_]+$ ]] || die "bad map name"
+  [[ -d "$MAPS/$m" ]] || die "no such map '$m'"
+  rm -rf "${MAPS:?}/$m"
+  echo "✓ removed maps/$m config — the world save (SavedArks/$m.ark) is untouched"
 }
 
 cmd_mods_sync() {
@@ -67,6 +76,16 @@ cmd_mods_sync() {
   # shellcheck disable=SC2086
   python3 "$ROOT/scripts/ark-mods-fetch.py" $missing >> "$REGISTRY"
   echo "✓ registry now has $(grep -cE '^[0-9]' "$REGISTRY") mods"
+}
+
+cmd_mods_add() {
+  local id="${1:?usage: mods-add <id>}"
+  [[ "$id" =~ ^[0-9]+$ ]] || die "mod id must be numeric (got '$id')"
+  awk -F'\t' -v i="$id" '$1==i{f=1} END{exit !f}' "$REGISTRY" && { echo "already in registry: $id  $(mod_name "$id")"; return 0; }
+  local line; line="$(python3 "$ROOT/scripts/ark-mods-fetch.py" "$id" 2>/dev/null)"
+  [[ -n "$line" ]] || die "couldn't fetch mod $id from Steam — check the ID"
+  printf '%s\n' "$line" >> "$REGISTRY"
+  echo "✓ added to registry: $line"
 }
 
 cmd_mods_edit() {
@@ -95,7 +114,9 @@ case "${1:-}" in
   maps)      cmd_maps ;;
   apply)     shift; cmd_apply "$@" ;;
   map-new)   shift; cmd_map_new "$@" ;;
+  map-del)   shift; cmd_map_del "$@" ;;
   mods-sync) cmd_mods_sync ;;
+  mods-add)  shift; cmd_mods_add "$@" ;;
   mods-edit) shift; cmd_mods_edit "$@" ;;
-  *) echo "usage: ark.sh {maps | apply <Map> | map-new <Map> [from] | mods-sync | mods-edit <Map>}" ;;
+  *) echo "usage: ark.sh {maps | apply <Map> | map-new <Map> [from] | map-del <Map> | mods-sync | mods-add <id> | mods-edit <Map>}" ;;
 esac

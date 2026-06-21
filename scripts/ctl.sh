@@ -46,6 +46,12 @@ pick() {
   fi
 }
 
+# ask "<prompt>"  — one-line text input (gum if present, else read).
+ask() {
+  if command -v gum >/dev/null 2>&1; then gum input --prompt "$1 "
+  else local a; read -rp "$1 " a; printf '%s\n' "$a"; fi
+}
+
 menu() {
   echo "home-game-servers — pick a server"
   local g labels=()
@@ -57,7 +63,7 @@ menu() {
   [[ "$game" == quit ]] && return 0
 
   local actions=(up down restart logs console backup status)
-  [[ "$game" == ark-se ]] && actions=(up edit-mods down restart logs console backup status)
+  [[ "$game" == ark-se ]] && actions=(up edit-mods edit-config add-mod new-map del-map down restart logs console backup status)
   local action; action=$(pick "action>" "${actions[@]}") || return 0
 
   # ARK: edit a map's mod list (gum) — does not start the server
@@ -65,6 +71,39 @@ menu() {
     local emaps; mapfile -t emaps < <("$ROOT/scripts/ark.sh" maps)
     local emap; emap=$(pick "edit mods for map>" "${emaps[@]}") || return 0
     "$ROOT/scripts/ark.sh" mods-edit "$emap"
+    return 0
+  fi
+
+  # ARK: edit a map's config (.ini) in $EDITOR
+  if [[ "$game" == ark-se && "$action" == edit-config ]]; then
+    local cmaps; mapfile -t cmaps < <("$ROOT/scripts/ark.sh" maps)
+    local cmap; cmap=$(pick "edit config for map>" "${cmaps[@]}") || return 0
+    "${EDITOR:-nano}" "$GAMES_DIR/ark-se/maps/$cmap/GameUserSettings.ini" "$GAMES_DIR/ark-se/maps/$cmap/Game.ini"
+    echo "→ edits apply next time you 'up' $cmap"
+    return 0
+  fi
+
+  # ARK: add a mod to the registry by Workshop ID (name auto-fetched)
+  if [[ "$game" == ark-se && "$action" == add-mod ]]; then
+    local mid; mid=$(ask "Steam Workshop mod ID>") || return 0
+    [[ -n "$mid" ]] && "$ROOT/scripts/ark.sh" mods-add "$mid"
+    return 0
+  fi
+
+  # ARK: scaffold a new map (copies TheCenter)
+  if [[ "$game" == ark-se && "$action" == new-map ]]; then
+    local nm; nm=$(ask "new map — ARK code (Ragnarok, Fjordur, Valguero_P…)>") || return 0
+    [[ -n "$nm" ]] && "$ROOT/scripts/ark.sh" map-new "$nm"
+    return 0
+  fi
+
+  # ARK: delete a map's config (the world save is kept)
+  if [[ "$game" == ark-se && "$action" == del-map ]]; then
+    local dmaps; mapfile -t dmaps < <("$ROOT/scripts/ark.sh" maps)
+    local dmap; dmap=$(pick "delete config for map>" "${dmaps[@]}") || return 0
+    if command -v gum >/dev/null 2>&1; then gum confirm "Delete maps/$dmap config? (world save is kept)" || return 0
+    else local yn; read -rp "Delete maps/$dmap config? [y/N] " yn; [[ "$yn" == [yY] ]] || return 0; fi
+    "$ROOT/scripts/ark.sh" map-del "$dmap"
     return 0
   fi
 

@@ -191,16 +191,21 @@ map runs `scripts/ark.sh apply <Map>`: it sets `ARK_MAP`/`ARK_MODS`, **merges** 
 map's `[ServerSettings]` into the live file (keeping image-managed keys like passwords),
 and replaces `Game.ini`.
 
-**Via the menu** (`./ctl` → `ark-se`):
-- **up** → pick a map → loads that map's config + mods, then starts.
-- **edit-mods** → pick a map → toggle its mods by name (gum), saved to `maps/<Map>/mods`.
+**Via the menu** (`./ctl` → `ark-se`) — the whole workflow, no CLI needed:
+- **up** → pick a map → loads its config + mods, then starts.
+- **edit-mods** → pick a map → toggle its mods by name (gum checklist).
+- **edit-config** → pick a map → opens its `.ini` files in `$EDITOR`.
+- **add-mod** → paste a Workshop ID → name auto-fetched, added to the registry.
+- **new-map** / **del-map** → scaffold a map from TheCenter / remove a map's config (save kept).
 
-**Via `scripts/ark.sh`:**
+**Via `scripts/ark.sh`** (the menu just calls these):
 ```
 ark.sh maps                  # list configured maps
-ark.sh apply   <Map>         # load a map's config + mods (the menu calls this)
-ark.sh map-new <Map> [from]  # scaffold a new map (copies TheCenter by default)
+ark.sh apply    <Map>        # load a map's config + mods
+ark.sh map-new  <Map> [from] # scaffold a new map (copies TheCenter by default)
+ark.sh map-del  <Map>        # remove a map's config (world save kept)
 ark.sh mods-sync             # fetch any unknown mod names from Steam into mods.tsv
+ark.sh mods-add  <id>        # add one mod to the registry by Workshop ID
 ark.sh mods-edit <Map>       # gum picker for a map's mods
 ```
 
