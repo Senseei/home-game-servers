@@ -13,11 +13,11 @@ DifficultyOffset=1.0
 OverrideOfficialDifficulty=10.0
 
 ServerPVE=True
-AllowFlyerSpeedLeveling=True
+AllowFlyerCarryPvE=True       ; flyers can carry wild dinos in PvE
+AllowCaveBuildingPvE=True     ; allow building inside caves in PvE
 
-; Building QoL
+; Building QoL (no-collision build + flyer speed leveling live in Game.ini — see Game.ini.example)
 bAllowPlatformSaddleMultiFloors=True       ; multiple floors on platform saddles
-bDisableStructurePlacementCollision=True   ; place structures overlapping / no-clip into terrain
 
 ; Rates
 XPMultiplier=2.0
