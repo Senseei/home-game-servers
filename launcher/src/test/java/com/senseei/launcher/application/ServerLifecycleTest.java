@@ -25,6 +25,7 @@ class ServerLifecycleTest {
         @Override public void up(Game g) { upped.add(g.name()); }
         @Override public void down(Game g) { }
         @Override public void restart(Game g) { }
+        @Override public void exec(Game g, String... command) { }
         @Override public InputStream logs(Game g, boolean follow, int tail) { return InputStream.nullInputStream(); }
         @Override public RunState state(Game g) { return states.getOrDefault(g.name(), RunState.STOPPED); }
     }

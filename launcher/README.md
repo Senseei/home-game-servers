@@ -32,6 +32,7 @@ A later step adds a GraalVM `native-image` build for an instant single binary.
 2. **done** — ARK domain (`ctl ark …`): map inherit/custom + the `[ServerSettings]`
    `IniMerge` (pure, 7 tests); `ConfigStore`/`ModRegistry`/`WorkshopClient`/`EnvStore`
    ports + adapters; `ArkMapService`/`ModCatalogService` use-cases — ark.sh parity.
-3. Backups: `RconClient` + RCON flush → tar → rotate → rclone.
+3. **done** — backups (`ctl backup|restore`): `BackupPolicy` (pure rotation), a Java
+   Source-RCON flush (replaces rcon.py), tar, local + rclone offsite. Core complete.
 4. UI/UX — a clean-slate presentation over the stable core.
 5. Retire the bash scripts; `./ctl` becomes this; CI swaps shellcheck → `mvn test`.

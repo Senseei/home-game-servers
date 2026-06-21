@@ -16,10 +16,22 @@ import com.senseei.launcher.application.port.LiveConfig;
 import com.senseei.launcher.application.port.MapConfigRepository;
 import com.senseei.launcher.application.port.ModRegistryRepository;
 import com.senseei.launcher.application.port.WorkshopClient;
+import com.senseei.launcher.adapter.backup.FileLocalBackups;
+import com.senseei.launcher.adapter.backup.GameFlusher;
+import com.senseei.launcher.adapter.backup.RcloneOffsite;
+import com.senseei.launcher.adapter.backup.TarArchiver;
+import com.senseei.launcher.adapter.rcon.SourceRconClient;
+import com.senseei.launcher.application.backup.BackupService;
+import com.senseei.launcher.application.port.Archiver;
+import com.senseei.launcher.application.port.Flusher;
+import com.senseei.launcher.application.port.LocalBackups;
+import com.senseei.launcher.application.port.OffsiteBackups;
+import com.senseei.launcher.application.port.RconClient;
 import com.senseei.launcher.cli.CtlCommand;
 import picocli.CommandLine;
 
 import java.nio.file.Path;
+import java.time.Clock;
 
 /** Entry point: wires the dependency graph (root → adapters → use-cases) and runs the CLI. */
 public final class Launcher {
@@ -48,7 +60,14 @@ public final class Launcher {
         ArkMapService arkMaps = new ArkMapService(mapConfigs, live, env);
         ModCatalogService mods = new ModCatalogService(registry, workshop, mapConfigs);
 
-        return new CommandLine(new CtlCommand(lifecycle, arkMaps, mods))
+        RconClient rcon = new SourceRconClient();
+        Flusher flusher = new GameFlusher(engine, rcon, env);
+        Archiver archiver = new TarArchiver();
+        LocalBackups localBackups = new FileLocalBackups(root);
+        OffsiteBackups offsite = new RcloneOffsite(env);
+        BackupService backups = new BackupService(root, flusher, archiver, localBackups, offsite, env, Clock.systemDefaultZone());
+
+        return new CommandLine(new CtlCommand(lifecycle, arkMaps, mods, backups))
                 .setExecutionExceptionHandler((ex, cmd, parseResult) -> {
                     cmd.getErr().println("✗ " + ex.getMessage());
                     return 1;

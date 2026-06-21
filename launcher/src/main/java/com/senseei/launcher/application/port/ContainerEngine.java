@@ -17,6 +17,9 @@ public interface ContainerEngine {
 
     void restart(Game game);
 
+    /** Runs a command inside the game's container (e.g. rcon-cli). */
+    void exec(Game game, String... command);
+
     /** A live stream of the container's logs; the caller closes it. */
     InputStream logs(Game game, boolean follow, int tail);
 

@@ -4,6 +4,8 @@ import com.senseei.launcher.application.ServerLifecycle;
 import com.senseei.launcher.application.ServerStatus;
 import com.senseei.launcher.application.ark.ArkMapService;
 import com.senseei.launcher.application.ark.ModCatalogService;
+import com.senseei.launcher.application.backup.BackupService;
+import com.senseei.launcher.domain.backup.Snapshot;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 import picocli.CommandLine.ParentCommand;
@@ -27,6 +29,8 @@ import java.util.concurrent.Callable;
                 CtlCommand.Restart.class,
                 CtlCommand.Logs.class,
                 CtlCommand.Status.class,
+                CtlCommand.Backup.class,
+                CtlCommand.Restore.class,
                 ArkCommand.class
         }
 )
@@ -35,11 +39,40 @@ public final class CtlCommand {
     final ServerLifecycle lifecycle;
     final ArkMapService arkMaps;
     final ModCatalogService mods;
+    final BackupService backups;
 
-    public CtlCommand(ServerLifecycle lifecycle, ArkMapService arkMaps, ModCatalogService mods) {
+    public CtlCommand(ServerLifecycle lifecycle, ArkMapService arkMaps, ModCatalogService mods, BackupService backups) {
         this.lifecycle = lifecycle;
         this.arkMaps = arkMaps;
         this.mods = mods;
+        this.backups = backups;
+    }
+
+    @Command(name = "backup", description = "Snapshot a game's world (flush → tar → rotate → offsite).")
+    static final class Backup implements Callable<Integer> {
+        @ParentCommand CtlCommand parent;
+        @Parameters(index = "0", paramLabel = "<game>") String game;
+
+        @Override
+        public Integer call() {
+            Snapshot s = parent.backups.backup(game);
+            System.out.println("✓ backed up " + s.game() + " → " + s.fileName());
+            return 0;
+        }
+    }
+
+    @Command(name = "restore", description = "Restore a game's world from a snapshot (default: latest).")
+    static final class Restore implements Callable<Integer> {
+        @ParentCommand CtlCommand parent;
+        @Parameters(index = "0", paramLabel = "<game>") String game;
+        @Parameters(index = "1", arity = "0..1", paramLabel = "<file|latest>") String which;
+
+        @Override
+        public Integer call() {
+            parent.backups.restore(game, which);
+            System.out.println("✓ restored " + game + " from " + (which == null ? "latest" : which));
+            return 0;
+        }
     }
 
     @Command(name = "up", description = "Start a server.")

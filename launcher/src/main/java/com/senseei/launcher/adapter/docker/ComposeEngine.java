@@ -66,6 +66,24 @@ public final class ComposeEngine implements ContainerEngine {
     }
 
     @Override
+    public void exec(Game game, String... command) {
+        List<String> cmd = new ArrayList<>(List.of("docker", "exec", game.container()));
+        cmd.addAll(Arrays.asList(command));
+        try {
+            int code = new ProcessBuilder(cmd).inheritIO().start().waitFor();
+            if (code != 0) {
+                throw new RuntimeException("docker exec " + String.join(" ", command)
+                        + " failed for " + game.name() + " (exit " + code + ")");
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("interrupted", e);
+        }
+    }
+
+    @Override
     public InputStream logs(Game game, boolean follow, int tail) {
         List<String> cmd = base(game);
         cmd.add("logs");
