@@ -19,3 +19,7 @@ backups/
 
 # Original download archive (extracted into this repo)
 home-game-servers.tar.gz
+
+# Python bytecode
+__pycache__/
+*.pyc
