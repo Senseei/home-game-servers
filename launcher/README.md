@@ -28,7 +28,8 @@ CLI → TUI → web without touching the slices.
 ```
 cd launcher
 mvn clean package          # compile + test + build target/ctl.jar
-java -jar target/ctl.jar status
+java -jar target/ctl.jar            # no args → interactive TUI (Lanterna), in tui/
+java -jar target/ctl.jar status     # with args → scriptable CLI (Picocli), in cli/
 ```
 A later step adds a GraalVM `native-image` build for an instant single binary.
 

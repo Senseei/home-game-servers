@@ -24,6 +24,7 @@ import com.senseei.launcher.backup.port.BackupStore;
 import com.senseei.launcher.backup.port.Flusher;
 import com.senseei.launcher.backup.port.RconClient;
 import com.senseei.launcher.cli.CtlCommand;
+import com.senseei.launcher.tui.Tui;
 import picocli.CommandLine;
 
 import java.nio.file.Path;
@@ -60,6 +61,16 @@ public final class Launcher {
         Flusher flusher = new GameFlusher(engine, rcon, env);
         BackupStore backupStore = new TarRcloneBackupStore(root, env);
         BackupService backups = new BackupService(root, flusher, backupStore, env, Clock.systemDefaultZone());
+
+        if (args.length == 0) {   // no args → interactive TUI; otherwise the scriptable CLI
+            try {
+                new Tui(lifecycle, arkMaps, mods, backups).run();
+                return 0;
+            } catch (java.io.IOException e) {
+                System.err.println("✗ " + e.getMessage());
+                return 1;
+            }
+        }
 
         return new CommandLine(new CtlCommand(lifecycle, arkMaps, mods, backups))
                 .setExecutionExceptionHandler((ex, cmd, parseResult) -> {
