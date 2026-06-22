@@ -56,9 +56,10 @@ public final class Shell {
         try (Terminal t = TerminalBuilder.builder().build()) {
             terminal = t;
             out = t.writer();
+            out.print("\033[H\033[2J\033[3J");   // clear screen + scrollback so we start clean
             out.println("↑/↓ move · enter select · q or esc to go back");
             while (true) {
-                int c = menu("home-game-servers", List.of("Servers", "ARK", "Backups", "Quit"));
+                int c = menu("home-game-servers", List.of("Servers", "Games", "Backups", "Quit"));
                 if (c < 0 || c == 3) {
                     out.println("bye 👋");
                     out.flush();
@@ -66,7 +67,7 @@ public final class Shell {
                 }
                 switch (c) {
                     case 0 -> servers();
-                    case 1 -> ark();
+                    case 1 -> games();
                     case 2 -> backupMenu();
                     default -> { }
                 }
@@ -101,6 +102,20 @@ public final class Shell {
                 }
                 return "✓ " + game + " — " + List.of("start", "stop", "restart").get(a) + " issued";
             });
+        }
+    }
+
+    // ── Games ────────────────────────────────────────────────────────────────
+    private void games() {
+        while (true) {
+            int c = menu("Games", List.of("ARK", "Minecraft", "Palworld", BACK));
+            if (c < 0 || c == 3) {
+                return;
+            }
+            switch (c) {
+                case 0 -> ark();
+                default -> flash(List.of("no game-specific options yet — use Servers + Backups"));
+            }
         }
     }
 
