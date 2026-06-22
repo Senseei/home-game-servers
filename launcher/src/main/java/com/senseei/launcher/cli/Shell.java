@@ -175,7 +175,7 @@ public final class Shell {
                     flash(lines);
                 }
                 case 1 -> {
-                    String id = prompt("Steam Workshop id:");
+                    String id = prompt("Steam Workshop id (blank + enter to cancel):");
                     if (id != null && !id.isBlank()) {
                         result(() -> { Mod m = mods.addMod(id.strip()); return "✓ added " + m.id() + "  " + m.name(); });
                     }
