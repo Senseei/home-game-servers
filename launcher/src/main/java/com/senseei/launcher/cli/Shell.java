@@ -17,7 +17,10 @@ import org.jline.terminal.Attributes;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -89,8 +92,12 @@ public final class Shell {
                 return;
             }
             String game = statuses.get(c).game();
-            int a = menu(game, List.of("Start", "Stop", "Restart", BACK));
-            if (a < 0 || a == 3) {
+            int a = menu(game, List.of("Start", "Stop", "Restart", "Logs", BACK));
+            if (a < 0 || a == 4) {
+                continue;
+            }
+            if (a == 3) {
+                watchLogs(game);
                 continue;
             }
             result(() -> {
@@ -102,6 +109,38 @@ public final class Shell {
                 }
                 return "✓ " + game + " — " + List.of("start", "stop", "restart").get(a) + " issued";
             });
+        }
+    }
+
+    /** Follow a server's logs live; press any key to stop and return to the menu. */
+    private void watchLogs(String game) {
+        out.println();
+        out.println("logs · " + game + "  (press any key to stop)");
+        out.flush();
+        InputStream stream = lifecycle.logs(game, true, 40);
+        Thread pump = new Thread(() -> {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    out.print(line + "\r\n");   // \r\n: the terminal is in raw mode while we wait for the stop key
+                    out.flush();
+                }
+            } catch (IOException ignored) {
+                // stream closed when the user stops
+            }
+        });
+        pump.setDaemon(true);
+        pump.start();
+        readKey();
+        try {
+            stream.close();   // closing reaps the `docker compose logs -f` process
+        } catch (IOException ignored) {
+            // already gone
+        }
+        try {
+            pump.join(1000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 
