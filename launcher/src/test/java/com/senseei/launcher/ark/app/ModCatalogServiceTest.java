@@ -66,4 +66,31 @@ class ModCatalogServiceTest {
         assertTrue(repo.exists("Ragnarok"));
         assertEquals(List.of("999", "888"), repo.load("Ragnarok").modIds());
     }
+
+    @Test
+    void toggleModAddsThenRemoves() {
+        var repo = repoWithDefaultMods(List.of());
+        var svc = new ModCatalogService(new InMemoryRegistryRepo(), new FakeWorkshop(), repo);
+
+        assertTrue(svc.toggleMod("default", "555"));
+        assertEquals(List.of("555"), repo.load("default").modIds());
+        assertEquals(false, svc.toggleMod("default", "555"));
+        assertEquals(List.of(), repo.load("default").modIds());
+    }
+
+    @Test
+    void removeModDropsFromRegistryAndEveryMap() {
+        var reg = new InMemoryRegistryRepo();
+        reg.registry.add(new Mod("111", "One"));
+        reg.registry.add(new Mod("222", "Two"));
+        var repo = repoWithDefaultMods(List.of("111", "222"));
+        var svc = new ModCatalogService(reg, new FakeWorkshop(), repo);
+        svc.setMapMods("Ragnarok", List.of("111", "222"));   // a custom map carrying both
+
+        svc.removeMod("111");
+
+        assertEquals(false, reg.load().contains("111"));
+        assertEquals(List.of("222"), repo.load("default").modIds());
+        assertEquals(List.of("222"), repo.load("Ragnarok").modIds());
+    }
 }

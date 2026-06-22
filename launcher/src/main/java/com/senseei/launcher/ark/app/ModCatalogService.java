@@ -77,4 +77,40 @@ public final class ModCatalogService {
         cfg.setMods(ids);
         maps.save(cfg);
     }
+
+    /** Toggles one mod for a target (add if absent, remove if present); returns its new state. */
+    public boolean toggleMod(String target, String id) {
+        MapConfig cfg = maps.load(target);
+        List<String> ids = new ArrayList<>(cfg.modIds());
+        boolean nowOn = !ids.remove(id);
+        if (nowOn) {
+            ids.add(id);
+        }
+        cfg.setMods(ids);
+        maps.save(cfg);
+        return nowOn;
+    }
+
+    /** Removes a mod from the registry AND from every config that uses it (default + custom maps). */
+    public Mod removeMod(String id) {
+        ModRegistry registry = registries.load();
+        Mod removed = new Mod(id, registry.nameOf(id));
+        registry.remove(id);
+        registries.save(registry);
+        dropFromConfig(DEFAULT, id);
+        for (String map : maps.customMaps()) {
+            dropFromConfig(map, id);
+        }
+        return removed;
+    }
+
+    private void dropFromConfig(String target, String id) {
+        MapConfig cfg = maps.load(target);
+        if (cfg.modIds().contains(id)) {
+            List<String> ids = new ArrayList<>(cfg.modIds());
+            ids.remove(id);
+            cfg.setMods(ids);
+            maps.save(cfg);
+        }
+    }
 }

@@ -32,6 +32,11 @@ public final class ModRegistry {
         }
     }
 
+    /** Removes a mod by id (no-op if absent). */
+    public void remove(String id) {
+        mods.removeIf(m -> m.id().equals(id));
+    }
+
     public String nameOf(String id) {
         return mods.stream().filter(m -> m.id().equals(id)).map(Mod::name).findFirst().orElse(id);
     }
