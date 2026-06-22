@@ -24,7 +24,7 @@ import com.senseei.launcher.backup.port.BackupStore;
 import com.senseei.launcher.backup.port.Flusher;
 import com.senseei.launcher.backup.port.RconClient;
 import com.senseei.launcher.cli.CtlCommand;
-import com.senseei.launcher.tui.Tui;
+import com.senseei.launcher.cli.Shell;
 import picocli.CommandLine;
 
 import java.nio.file.Path;
@@ -62,21 +62,21 @@ public final class Launcher {
         BackupStore backupStore = new TarRcloneBackupStore(root, env);
         BackupService backups = new BackupService(root, flusher, backupStore, env, Clock.systemDefaultZone());
 
-        if (args.length == 0) {   // no args → interactive TUI; otherwise the scriptable CLI
+        CommandLine cmd = new CommandLine(new CtlCommand(lifecycle, arkMaps, mods, backups))
+                .setExecutionExceptionHandler((ex, c, parseResult) -> {
+                    c.getErr().println("✗ " + ex.getMessage());
+                    return 1;
+                });
+
+        if (args.length == 0) {   // no args → interactive shell; otherwise a one-shot command
             try {
-                new Tui(lifecycle, arkMaps, mods, backups).run();
+                Shell.run(cmd);
                 return 0;
             } catch (java.io.IOException e) {
                 System.err.println("✗ " + e.getMessage());
                 return 1;
             }
         }
-
-        return new CommandLine(new CtlCommand(lifecycle, arkMaps, mods, backups))
-                .setExecutionExceptionHandler((ex, cmd, parseResult) -> {
-                    cmd.getErr().println("✗ " + ex.getMessage());
-                    return 1;
-                })
-                .execute(args);
+        return cmd.execute(args);
     }
 }
