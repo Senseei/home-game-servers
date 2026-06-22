@@ -122,18 +122,44 @@ public final class Shell {
     // ── ARK ──────────────────────────────────────────────────────────────────
     private void ark() {
         while (true) {
-            int c = menu("ARK", List.of("Switch map", "Edit config", "Customize maps",
-                    "Edit mods", "Mods registry", BACK));
-            if (c < 0 || c == 5) {
+            int c = menu("ARK", List.of("Switch map", "Config", "Customize maps", "Mods registry", BACK));
+            if (c < 0 || c == 4) {
                 return;
             }
             switch (c) {
                 case 0 -> pickMap("Switch map", map ->
                         result(() -> { arkMaps.apply(map); return "✓ applied " + map + " — restart ARK to take effect"; }));
-                case 1 -> pickName("Edit config", arkMaps.editableTargets(), this::edit);
+                case 1 -> config();
                 case 2 -> customizeMaps();
-                case 3 -> pickName("Edit mods — which target?", arkMaps.editableTargets(), this::editMods);
-                case 4 -> registry();
+                case 3 -> registry();
+                default -> { }
+            }
+        }
+    }
+
+    /** Config → pick a target (default or a custom map) → edit its files or mods. */
+    private void config() {
+        while (true) {
+            List<String> targets = arkMaps.editableTargets();
+            List<String> items = new ArrayList<>(targets);
+            items.add(BACK);
+            int c = menu("Config — which target?", items);
+            if (c < 0 || c == targets.size()) {
+                return;
+            }
+            configTarget(targets.get(c));
+        }
+    }
+
+    private void configTarget(String target) {
+        while (true) {
+            int c = menu("Config · " + target, List.of("Edit files", "Edit mods", BACK));
+            if (c < 0 || c == 2) {
+                return;
+            }
+            switch (c) {
+                case 0 -> edit(target);
+                case 1 -> editMods(target);
                 default -> { }
             }
         }
