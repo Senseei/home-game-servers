@@ -59,7 +59,7 @@ public final class Shell {
         try (Terminal t = TerminalBuilder.builder().build()) {
             terminal = t;
             out = t.writer();
-            out.print("\033[H\033[2J\033[3J");   // clear screen + scrollback so we start clean
+            clearScreen();   // start on a clean screen
             out.println("↑/↓ move · enter select · q or esc to go back");
             while (true) {
                 int c = menu("home-game-servers", List.of("Servers", "Games", "Backups", "Quit"));
@@ -114,7 +114,7 @@ public final class Shell {
 
     /** Follow a server's logs live; press any key to stop and return to the menu. */
     private void watchLogs(String game) {
-        out.println();
+        clearScreen();
         out.println("logs · " + game + "  (press any key to stop)");
         out.flush();
         InputStream stream = lifecycle.logs(game, true, 40);
@@ -142,6 +142,7 @@ public final class Shell {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+        clearScreen();   // wipe the logs so the menu returns to a clean screen
     }
 
     // ── Games ────────────────────────────────────────────────────────────────
@@ -398,6 +399,12 @@ public final class Shell {
     /** Move the cursor up {@code n} lines and clear to the end of the screen. */
     private void eraseLines(int n) {
         out.print("\033[" + n + "A\033[J");
+        out.flush();
+    }
+
+    /** Clear the whole screen + scrollback — for full-screen output like logs. */
+    private void clearScreen() {
+        out.print("\033[H\033[2J\033[3J");
         out.flush();
     }
 }
