@@ -68,9 +68,9 @@ public final class Launcher {
                     return 1;
                 });
 
-        if (args.length == 0) {   // no args → interactive shell; otherwise a one-shot command
+        if (args.length == 0) {   // no args → interactive menu; otherwise a one-shot command
             try {
-                Shell.run(cmd);
+                new Shell(lifecycle, arkMaps, mods, backups).run();
                 return 0;
             } catch (java.io.IOException e) {
                 System.err.println("✗ " + e.getMessage());

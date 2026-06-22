@@ -28,7 +28,7 @@ CLI → TUI → web without touching the slices.
 ```
 cd launcher
 mvn clean package          # compile + test + build target/ctl.jar
-java -jar target/ctl.jar            # no args → interactive shell (JLine REPL), cli/Shell
+java -jar target/ctl.jar            # no args → interactive arrow-key menu, cli/Shell
 java -jar target/ctl.jar status     # with args → one-shot command (Picocli), cli/
 # or just ./jctl  /  ./jctl status   (wrapper at the repo root)
 ```
