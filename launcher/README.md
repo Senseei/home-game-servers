@@ -4,20 +4,25 @@ A hexagonal / clean-architecture rewrite of the bash `ctl.sh` / `ark.sh` launche
 built incrementally. **The bash scripts remain the working tool** until this reaches
 parity. Plain Java 21 + Picocli, built with Maven.
 
-## Layers (your Controller → UseCase → Service shape)
-| Package | Role |
-|---|---|
-| `domain` | entities + rules, **no I/O**, unit-tested (`Game`, `GameCatalog`; later: ArkMap inheritance, the `[ServerSettings]` merge) |
-| `application` | use-cases (`ServerLifecycle`) — **return data, never formatted text** |
-| `application.port` | interfaces the use-cases depend on (`ContainerEngine`, later `RconClient`, `ConfigStore`, …) |
-| `adapter` | implementations — `docker.ComposeEngine` shells out to `docker compose` (wraps it, doesn't reimplement it) |
-| `cli` | thin presentation (Picocli); the **real UI/UX is a later phase** |
-| `Launcher` | entry point — wires the graph |
+## Structure — feature-first, layered within
+Each feature owns a vertical slice; inside it the clean-arch layers are explicit
+sub-packages — so you navigate by **feature** (which folder) and see the **layer** at a
+glance (which file does what):
 
-Presentation is fully decoupled — use-cases take/return data — so the UI can be
-swapped (CLI → TUI → web) without touching business logic. The domain and
-application layers are **framework-free** (no Spring), so they stay portable and
-fast to test; Spring can arrive later as a web presentation adapter if wanted.
+```
+lifecycle/  domain · app · port · adapter    Game · ServerLifecycle · ContainerEngine · ComposeEngine
+ark/        domain · app · port · adapter    MapConfig·IniMerge · ArkMapService · repos · File*/Steam*
+backup/     domain · app · port · adapter    BackupPolicy · BackupService · BackupStore · Tar·RCON
+shared/     port · adapter                   EnvStore · DotEnvStore · RepoRoot
+cli/                                         thin Picocli presentation (real UI/UX is a later phase)
+Launcher                                     composition root — wires the graph
+```
+
+Within a feature: **`domain/`** = entities, value objects, domain services (no I/O,
+unit-tested); **`app/`** = use-cases (return data, never text); **`port/`** = the interfaces
+the use-cases depend on; **`adapter/`** = the implementations. Domain + app are
+framework-free (no Spring); the presentation is fully decoupled, so the UI swaps
+CLI → TUI → web without touching the slices.
 
 ## Build & run
 ```

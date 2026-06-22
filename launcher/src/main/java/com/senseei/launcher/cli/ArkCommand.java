@@ -1,9 +1,9 @@
 package com.senseei.launcher.cli;
 
-import com.senseei.launcher.application.ark.ArkMapService;
-import com.senseei.launcher.application.ark.MapChoice;
-import com.senseei.launcher.application.ark.ModCatalogService;
-import com.senseei.launcher.domain.ark.Mod;
+import com.senseei.launcher.ark.app.ArkMapService;
+import com.senseei.launcher.ark.app.MapChoice;
+import com.senseei.launcher.ark.app.ModCatalogService;
+import com.senseei.launcher.ark.domain.Mod;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 import picocli.CommandLine.ParentCommand;

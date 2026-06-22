@@ -1,11 +1,11 @@
 package com.senseei.launcher.cli;
 
-import com.senseei.launcher.application.ServerLifecycle;
-import com.senseei.launcher.application.ServerStatus;
-import com.senseei.launcher.application.ark.ArkMapService;
-import com.senseei.launcher.application.ark.ModCatalogService;
-import com.senseei.launcher.application.backup.BackupService;
-import com.senseei.launcher.domain.backup.Snapshot;
+import com.senseei.launcher.lifecycle.app.ServerLifecycle;
+import com.senseei.launcher.lifecycle.app.ServerStatus;
+import com.senseei.launcher.ark.app.ArkMapService;
+import com.senseei.launcher.ark.app.ModCatalogService;
+import com.senseei.launcher.backup.app.BackupService;
+import com.senseei.launcher.backup.domain.Snapshot;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 import picocli.CommandLine.ParentCommand;
