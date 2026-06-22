@@ -163,7 +163,15 @@ public final class Shell {
         out.println();
         out.println(heading);
         out.flush();
-        return Chooser.choose(terminal, options);
+        int selected = Chooser.choose(terminal, options);
+        eraseLines(options.size() + 2);   // wipe options + heading + blank so the view refreshes in place
+        return selected;
+    }
+
+    /** Move the cursor up {@code n} lines and clear to the end of the screen. */
+    private void eraseLines(int n) {
+        out.print("\033[" + n + "A\033[J");
+        out.flush();
     }
 
     private void result(Callable<String> action) {
