@@ -1,10 +1,8 @@
 package com.senseei.launcher.application.backup;
 
-import com.senseei.launcher.application.port.Archiver;
+import com.senseei.launcher.application.port.BackupStore;
 import com.senseei.launcher.application.port.EnvStore;
 import com.senseei.launcher.application.port.Flusher;
-import com.senseei.launcher.application.port.LocalBackups;
-import com.senseei.launcher.application.port.OffsiteBackups;
 import com.senseei.launcher.domain.Game;
 import com.senseei.launcher.domain.backup.Snapshot;
 import org.junit.jupiter.api.Test;
@@ -30,29 +28,26 @@ class BackupServiceTest {
         @Override public void flush(Game g) { flushed = g; }
     }
 
-    static final class FakeArchiver implements Archiver {
-        Path created;
-        @Override public void create(Path source, Path dest) { created = dest; }
-        @Override public void extract(Path archive, Path dest) { }
-    }
-
-    static final class InMemoryLocal implements LocalBackups {
-        final List<Snapshot> snaps = new ArrayList<>();
-        final Path dir = Path.of("/tmp/backups");
-        @Override public Path pathFor(Game g, String f) { snaps.add(0, new Snapshot(g.name(), f)); return dir.resolve(f); }
-        @Override public List<Snapshot> list(Game g) { return List.copyOf(snaps); }
-        @Override public Path resolve(Snapshot s) { return dir.resolve(s.fileName()); }
-        @Override public void delete(Snapshot s) { snaps.remove(s); }
-    }
-
-    static final class FakeOffsite implements OffsiteBackups {
-        boolean on = false;
+    static final class FakeStore implements BackupStore {
+        final List<Snapshot> localSnaps = new ArrayList<>();
         final List<String> pushed = new ArrayList<>();
-        @Override public boolean enabled() { return on; }
-        @Override public void push(Game g, Path a) { pushed.add(0, a.getFileName().toString()); }
-        @Override public List<String> list(Game g) { return List.copyOf(pushed); }
-        @Override public void delete(Game g, String f) { pushed.remove(f); }
-        @Override public void pull(Game g, String f, Path d) { }
+        boolean offsite = false;
+        Snapshot archived;
+
+        @Override public Snapshot archive(Game g, String f, Path src) {
+            Snapshot s = new Snapshot(g.name(), f);
+            localSnaps.add(0, s);
+            archived = s;
+            return s;
+        }
+        @Override public List<Snapshot> localSnapshots(Game g) { return List.copyOf(localSnaps); }
+        @Override public void deleteLocal(Snapshot s) { localSnaps.remove(s); }
+        @Override public void extract(Snapshot s, Path d) { }
+        @Override public boolean offsiteEnabled() { return offsite; }
+        @Override public void pushOffsite(Snapshot s) { pushed.add(0, s.fileName()); }
+        @Override public List<String> offsiteSnapshots(Game g) { return List.copyOf(pushed); }
+        @Override public void deleteOffsite(Game g, String f) { pushed.remove(f); }
+        @Override public void pullOffsite(Game g, String f) { }
     }
 
     static final class FakeEnv implements EnvStore {
@@ -61,48 +56,46 @@ class BackupServiceTest {
         @Override public void set(String k, String v) { values.put(k, v); }
     }
 
-    private static BackupService service(InMemoryLocal local, FakeOffsite off, FakeEnv env,
-                                         FakeFlusher flush, FakeArchiver arch) {
-        return new BackupService(Path.of("/repo"), flush, arch, local, off, env,
+    private static BackupService service(FakeStore store, FakeFlusher flusher, FakeEnv env) {
+        return new BackupService(Path.of("/repo"), flusher, store, env,
                 Clock.fixed(Instant.parse("2026-06-21T10:15:30Z"), ZoneOffset.UTC));
     }
 
     @Test
-    void backupFlushesArchivesAndNamesSnapshot() {
-        var local = new InMemoryLocal();
-        var flush = new FakeFlusher();
-        var arch = new FakeArchiver();
-        Snapshot s = service(local, new FakeOffsite(), new FakeEnv(), flush, arch).backup("ark-se");
+    void backupFlushesArchivesAndNames() {
+        FakeStore store = new FakeStore();
+        FakeFlusher flusher = new FakeFlusher();
+        Snapshot s = service(store, flusher, new FakeEnv()).backup("ark-se");
 
-        assertEquals("ark-se", flush.flushed.name());
+        assertEquals("ark-se", flusher.flushed.name());
         assertTrue(s.fileName().startsWith("ark-se-2026"));
         assertTrue(s.fileName().endsWith(".tar.gz"));
-        assertNotNull(arch.created);
+        assertNotNull(store.archived);
     }
 
     @Test
     void rotatesLocalBeyondKeep() {
-        var local = new InMemoryLocal();
+        FakeStore store = new FakeStore();
         for (int i = 0; i < 8; i++) {
-            local.snaps.add(new Snapshot("ark-se", "ark-se-old" + i + ".tar.gz"));
+            store.localSnaps.add(new Snapshot("ark-se", "ark-se-old" + i + ".tar.gz"));
         }
-        var env = new FakeEnv();
+        FakeEnv env = new FakeEnv();
         env.set("BACKUP_KEEP_LOCAL", "3");
 
-        service(local, new FakeOffsite(), env, new FakeFlusher(), new FakeArchiver()).backup("ark-se");
+        service(store, new FakeFlusher(), env).backup("ark-se");
 
-        assertEquals(3, local.snaps.size());
+        assertEquals(3, store.localSnaps.size());
     }
 
     @Test
-    void pushesOffsiteWhenEnabledAndSkipsWhenNot() {
-        var enabled = new FakeOffsite();
-        enabled.on = true;
-        service(new InMemoryLocal(), enabled, new FakeEnv(), new FakeFlusher(), new FakeArchiver()).backup("ark-se");
-        assertEquals(1, enabled.pushed.size());
+    void pushesOffsiteOnlyWhenEnabled() {
+        FakeStore on = new FakeStore();
+        on.offsite = true;
+        service(on, new FakeFlusher(), new FakeEnv()).backup("ark-se");
+        assertEquals(1, on.pushed.size());
 
-        var disabled = new FakeOffsite();
-        service(new InMemoryLocal(), disabled, new FakeEnv(), new FakeFlusher(), new FakeArchiver()).backup("ark-se");
-        assertTrue(disabled.pushed.isEmpty());
+        FakeStore off = new FakeStore();
+        service(off, new FakeFlusher(), new FakeEnv()).backup("ark-se");
+        assertTrue(off.pushed.isEmpty());
     }
 }
