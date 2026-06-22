@@ -55,4 +55,10 @@ final class InMemoryMapConfigRepository implements MapConfigRepository {
         custom.remove(map);
         stored.remove(map);
     }
+
+    @Override
+    public List<java.nio.file.Path> configFiles(String target) {
+        return List.of(java.nio.file.Path.of(target, "GameUserSettings.ini"),
+                java.nio.file.Path.of(target, "Game.ini"));
+    }
 }

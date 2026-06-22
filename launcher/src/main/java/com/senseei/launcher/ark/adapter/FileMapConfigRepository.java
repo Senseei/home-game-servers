@@ -67,6 +67,13 @@ public final class FileMapConfigRepository implements MapConfigRepository {
     }
 
     @Override
+    public List<Path> configFiles(String target) {
+        boolean custom = !target.equals(DEFAULT) && exists(target);
+        Path src = custom ? maps.resolve(target) : defaults;
+        return List.of(src.resolve("GameUserSettings.ini"), src.resolve("Game.ini"));
+    }
+
+    @Override
     public void delete(String map) {
         Path d = maps.resolve(map);
         if (!Files.exists(d)) {

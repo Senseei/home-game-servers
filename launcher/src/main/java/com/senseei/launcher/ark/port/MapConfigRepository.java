@@ -2,6 +2,7 @@ package com.senseei.launcher.ark.port;
 
 import com.senseei.launcher.ark.domain.MapConfig;
 
+import java.nio.file.Path;
 import java.util.List;
 
 /** Repository for the {@link MapConfig} aggregate. */
@@ -23,4 +24,7 @@ public interface MapConfigRepository {
 
     /** Removes a map's custom config (revert to inheriting default). */
     void delete(String map);
+
+    /** The on-disk config files to edit for a target (custom dir if customized, else default). */
+    List<Path> configFiles(String target);
 }

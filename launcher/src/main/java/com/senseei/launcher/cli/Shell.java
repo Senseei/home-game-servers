@@ -8,6 +8,7 @@ import com.senseei.launcher.backup.domain.Snapshot;
 import com.senseei.launcher.lifecycle.app.ServerLifecycle;
 import com.senseei.launcher.lifecycle.app.ServerStatus;
 import com.senseei.launcher.lifecycle.domain.RunState;
+import org.jline.terminal.Attributes;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 
@@ -20,8 +21,9 @@ import java.util.function.Consumer;
 
 /**
  * Interactive menu — you arrow through options and hit enter; nothing to type.
- * Inline in the terminal (scrollback kept), organized by the three feature
- * slices. Pure presentation: it only calls use-cases and prints their results.
+ * Inline in the terminal (scrollback kept), organized by the three feature slices.
+ * Menus and one-off output erase themselves so the view never accumulates. Pure
+ * presentation: it only calls use-cases and prints their results.
  */
 public final class Shell {
 
@@ -97,16 +99,20 @@ public final class Shell {
     // ── ARK ──────────────────────────────────────────────────────────────────
     private void ark() {
         while (true) {
-            int c = menu("ARK", List.of("Switch map", "Customize a map", "View a map's mods", BACK));
-            if (c < 0 || c == 3) {
+            int c = menu("ARK", List.of("Switch map", "Edit config", "Customize a map",
+                    "Uncustomize a map", "View a map's mods", BACK));
+            if (c < 0 || c == 5) {
                 return;
             }
             switch (c) {
                 case 0 -> pickMap("Switch map", map ->
                         result(() -> { arkMaps.apply(map); return "✓ applied " + map + " — restart ARK to take effect"; }));
-                case 1 -> pickMap("Customize a map", map ->
+                case 1 -> pickName("Edit config", arkMaps.editableTargets(), this::edit);
+                case 2 -> pickMap("Customize a map", map ->
                         result(() -> arkMaps.customize(map) ? "✓ " + map + " now has a custom config" : map + " is already custom"));
-                case 2 -> pickMap("View a map's mods", this::showMods);
+                case 3 -> pickName("Uncustomize a map", arkMaps.customMaps(), map ->
+                        result(() -> arkMaps.uncustomize(map) ? "✓ " + map + " reverted to default" : map + " was not custom"));
+                case 4 -> pickMap("View a map's mods", this::showMods);
                 default -> { }
             }
         }
@@ -125,15 +131,43 @@ public final class Shell {
         }
     }
 
+    private void pickName(String heading, List<String> names, Consumer<String> onPick) {
+        if (names.isEmpty()) {
+            flash(List.of("(nothing here yet)"));
+            return;
+        }
+        List<String> items = new ArrayList<>(names);
+        items.add(BACK);
+        int c = menu(heading, items);
+        if (c >= 0 && c != names.size()) {
+            onPick.accept(names.get(c));
+        }
+    }
+
+    private void edit(String target) {
+        String editor = System.getenv().getOrDefault("EDITOR", "nano");
+        List<String> command = new ArrayList<>();
+        command.add(editor);
+        arkMaps.configFiles(target).forEach(f -> command.add(f.toString()));
+        try {
+            new ProcessBuilder(command).inheritIO().start().waitFor();
+        } catch (IOException e) {
+            flash(List.of("✗ couldn't launch " + editor + ": " + e.getMessage()));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
     private void showMods(String map) {
-        out.println(map + " mods:");
+        List<String> lines = new ArrayList<>();
+        lines.add(map + " mods:");
         var list = mods.modsOf(map);
         if (list.isEmpty()) {
-            out.println("  (none)");
+            lines.add("  (none)");
         } else {
-            list.forEach(m -> out.println("  " + m.id() + "  " + m.name()));
+            list.forEach(m -> lines.add("  " + m.id() + "  " + m.name()));
         }
-        out.flush();
+        flash(lines);
     }
 
     // ── Backups ──────────────────────────────────────────────────────────────
@@ -168,18 +202,40 @@ public final class Shell {
         return selected;
     }
 
-    /** Move the cursor up {@code n} lines and clear to the end of the screen. */
-    private void eraseLines(int n) {
-        out.print("\033[" + n + "A\033[J");
+    /** Show one-off output, then wait for a key and erase it — so nothing piles up. */
+    private void flash(List<String> lines) {
+        lines.forEach(out::println);
+        out.println("· press a key ·");
         out.flush();
+        readKey();
+        eraseLines(lines.size() + 1);
     }
 
     private void result(Callable<String> action) {
+        String message;
         try {
-            out.println(action.call());
+            message = action.call();
         } catch (Exception e) {
-            out.println("✗ " + e.getMessage());
+            message = "✗ " + e.getMessage();
         }
+        flash(List.of(message));
+    }
+
+    private void readKey() {
+        Attributes previous = terminal.getAttributes();
+        terminal.enterRawMode();
+        try {
+            terminal.reader().read();
+        } catch (IOException ignored) {
+            // nothing to do
+        } finally {
+            terminal.setAttributes(previous);
+        }
+    }
+
+    /** Move the cursor up {@code n} lines and clear to the end of the screen. */
+    private void eraseLines(int n) {
+        out.print("\033[" + n + "A\033[J");
         out.flush();
     }
 }
