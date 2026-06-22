@@ -10,12 +10,11 @@ all with mod support.
 
 ```
 games/<game>/compose.yaml   one Compose file per game (the server definition)
-scripts/ctl.sh              up / down / logs / console / status
-scripts/backup.sh           RCON save-flush → tarball → rotate → offsite
-scripts/restore.sh          restore a snapshot (local or offsite)
+ctl + launcher/             the control tool (Java): up/down/logs/status, backups,
+                            ARK map+mod config — interactive menu or one-shot commands
 scripts/host-setup.sh       one-time laptop setup (Docker, rclone, lid-sleep…)
 systemd/                    timer templates for hands-off backups
-.github/workflows/ci.yaml   lint + compose validation
+.github/workflows/ci.yaml   Java build/test + shellcheck + compose validation
 ```
 
 ## Why this design
@@ -55,17 +54,17 @@ regularly.
 ## 3. Run a server
 
 ```bash
-./ctl                         # ⭐ interactive menu — pick game + action, and ARK's map
+./ctl                         # ⭐ interactive arrow-key menu — pick game + action
 # …or drive it directly:
-make up GAME=minecraft        # = ./scripts/ctl.sh up minecraft
-make logs GAME=minecraft
-make status
-make down GAME=minecraft
+./ctl up minecraft            # one-shot commands (or: make up GAME=minecraft)
+./ctl logs minecraft
+./ctl status
+./ctl down minecraft
 ```
 
-`./ctl` (or bare `make`) opens a menu listing each game with live status; pick one,
-pick an action, and for **ARK → up** it asks which map to launch. (`fzf` gives an
-arrow-key/filter menu if installed; otherwise it's a numbered picker.)
+`./ctl` (no args, or bare `make`) opens an arrow-key menu: **Servers** (start/stop/
+restart with live status), **Games → ARK** (switch map, edit config + mods, registry),
+and **Backups**. With arguments it's a scriptable CLI. (First run builds the Java jar.)
 
 You typically run **one game at a time** (16 GB each for Palworld/ARK).
 
@@ -106,7 +105,8 @@ rclone remote (`rclone config`) to **Backblaze B2** (10 GB free) or
 
 ## CI
 
-Every push runs shellcheck on the scripts and `docker compose config` on each
-game. To later close the loop (push → laptop auto-redeploys), add a
+Every push builds + tests the Java launcher (`mvn package`), runs shellcheck on the
+shell bits, and `docker compose config` on each game. To later close the loop (push →
+laptop auto-redeploys), add a
 [self-hosted runner](https://docs.github.com/en/actions/hosting-your-own-runners)
-on the laptop and a deploy job that runs `git pull && ctl.sh up`.
+on the laptop and a deploy job that runs `git pull && ./ctl up`.

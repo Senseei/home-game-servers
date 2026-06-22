@@ -2,7 +2,7 @@
 # Full env reference: https://github.com/thijsvanloef/palworld-server-docker#environment-variables
 # NOTE: Palworld is still evolving; verify env names against the upstream README.
 #
-#   ../../scripts/ctl.sh up palworld
+#   ./ctl up palworld
 #
 services:
   palworld:

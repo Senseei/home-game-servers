@@ -30,7 +30,7 @@ cd launcher
 mvn clean package          # compile + test + build target/ctl.jar
 java -jar target/ctl.jar            # no args → interactive arrow-key menu, cli/Shell
 java -jar target/ctl.jar status     # with args → one-shot command (Picocli), cli/
-# or just ./jctl  /  ./jctl status   (wrapper at the repo root)
+# or just ./ctl  /  ./ctl status   (wrapper at the repo root)
 ```
 A later step adds a GraalVM `native-image` build for an instant single binary.
 
@@ -41,5 +41,6 @@ A later step adds a GraalVM `native-image` build for an instant single binary.
    ports + adapters; `ArkMapService`/`ModCatalogService` use-cases — ark.sh parity.
 3. **done** — backups (`ctl backup|restore`): `BackupPolicy` (pure rotation), a Java
    Source-RCON flush (replaces rcon.py), tar, local + rclone offsite. Core complete.
-4. UI/UX — a clean-slate presentation over the stable core.
-5. Retire the bash scripts; `./ctl` becomes this; CI swaps shellcheck → `mvn test`.
+4. **done** — UI/UX: an interactive arrow-key menu (`cli/Shell` + `Chooser`/`Toggler`)
+   over the use-cases; `ctl` no-args opens it, `ctl <cmd>` stays the CLI.
+5. **done** — retired the bash scripts; `./ctl` is this; CI runs `mvn package`.

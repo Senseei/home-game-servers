@@ -1,6 +1,5 @@
-# ARK mod registry — Steam Workshop ID <TAB> name.
-# Auto-synced from Steam via: ./scripts/ark.sh mods-sync
-# This is the catalog the per-map mod editor (./scripts/ark.sh mods-edit <Map>) selects from.
+# ARK mod registry — Steam Workshop id <TAB> name.
+# Managed by the launcher; the per-map mod editor selects from this catalog.
 731604991	Structures Plus (S+)
 1404697612	Awesome SpyGlass!
 1609138312	Dino Storage v2

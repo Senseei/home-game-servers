@@ -1,5 +1,5 @@
 # TheCenter — Workshop mod IDs this map loads (one per line).
-# Edit with: ./scripts/ark.sh mods-edit TheCenter   (names come from ../../mods.tsv)
+# Edit via the launcher: ./ctl → Games → ARK → Config → <map> → Edit mods
 731604991
 1404697612
 1609138312

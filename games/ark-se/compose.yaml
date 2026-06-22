@@ -2,7 +2,7 @@
 # Full env reference: https://github.com/Hermsi1337/docker-ark-server
 # Server settings (difficulty, rates) + config workflow: see games/ark-se/README.md
 #
-#   ../../scripts/ctl.sh up ark-se
+#   ./ctl up ark-se
 #
 services:
   ark:

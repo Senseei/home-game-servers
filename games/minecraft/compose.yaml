@@ -2,7 +2,7 @@
 # Full env reference: https://docker-minecraft-server.readthedocs.io
 # Setup (API key, picking a pack, client install): see games/minecraft/README.md
 #
-#   ../../scripts/ctl.sh up minecraft
+#   ./ctl up minecraft
 #
 services:
   minecraft:

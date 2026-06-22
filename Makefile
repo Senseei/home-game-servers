@@ -1,17 +1,16 @@
-# home-game-servers — ergonomic wrappers around scripts/ctl.sh
+# home-game-servers — ergonomic wrappers around ./ctl (the Java launcher)
 # Usage:  make           (interactive menu)
 #         make up GAME=minecraft   /   make backup GAME=palworld
 GAME ?= minecraft
 .DEFAULT_GOAL := menu
 
-.PHONY: menu up down restart logs console status backup restore setup
-menu:     ; @./scripts/ctl.sh menu
-up:       ; @./scripts/ctl.sh up $(GAME)
-down:     ; @./scripts/ctl.sh down $(GAME)
-restart:  ; @./scripts/ctl.sh restart $(GAME)
-logs:     ; @./scripts/ctl.sh logs $(GAME)
-console:  ; @./scripts/ctl.sh console $(GAME)
-status:   ; @./scripts/ctl.sh status
-backup:   ; @./scripts/backup.sh $(GAME)
-restore:  ; @./scripts/restore.sh $(GAME) $(FILE)
+.PHONY: menu up down restart logs status backup restore setup
+menu:     ; @./ctl
+up:       ; @./ctl up $(GAME)
+down:     ; @./ctl down $(GAME)
+restart:  ; @./ctl restart $(GAME)
+logs:     ; @./ctl logs $(GAME)
+status:   ; @./ctl status
+backup:   ; @./ctl backup $(GAME)
+restore:  ; @./ctl restore $(GAME) $(FILE)
 setup:    ; @./scripts/host-setup.sh

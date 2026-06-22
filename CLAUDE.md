@@ -6,9 +6,12 @@ Paper/CurseForge, Palworld, ARK: Survival Evolved) on a Linux host via Docker Co
 ## Layout & conventions
 
 - `games/<game>/compose.yaml` — one server per game. Run **one game at a time** (RAM).
-- `scripts/ctl.sh` — `up | down | restart | logs | console | status`. It loads the
-  root `.env` (`docker compose --env-file "$ROOT/.env"`), so **use it** (or `make`),
-  not raw `docker compose` from a game dir (which would look for `.env` in the wrong place).
+- `./ctl` — the control tool (**Java**, in `launcher/`; the bash `scripts/ctl.sh` is
+  **retired**). No args → interactive arrow-key menu; args → one-shot CLI
+  (`up|down|restart|logs|status|backup|restore|ark …`). It loads the root `.env` and
+  shells `docker compose --env-file "$ROOT/.env"`, so **use it** (or `make`), not raw
+  `docker compose` from a game dir. `./ctl` builds the jar on first run; rebuild with
+  `cd launcher && mvn package`.
 - `.env` (gitignored) holds secrets + per-game knobs, **namespaced** (`MC_*`, `PAL_*`,
   `ARK_*`). The composes map them to each image's real env names via `${VAR}`
   interpolation (e.g. `MEMORY: "${MC_MEMORY}"`) — this is why you can't replace it with
@@ -20,7 +23,7 @@ Paper/CurseForge, Palworld, ARK: Survival Evolved) on a Linux host via Docker Co
   and RCON `27020` stays private via UFW's default-deny. See `NETWORKING.md`.
 - Per-game setup, settings, and quirks: `games/<game>/README.md`. Networking model
   (DHCP reservation → router forward → UFW → router DDNS + domain CNAME): `NETWORKING.md`.
-- CI (`.github/workflows/ci.yaml`): shellcheck + `docker compose config` per game.
+- CI (`.github/workflows/ci.yaml`): Java build/test (`mvn package`) + shellcheck + `docker compose config` per game.
 
 ## Running on Windows via WSL2 (more disk / RAM than the spare laptop)
 
@@ -73,7 +76,7 @@ your LAN, and `network_mode: host` binds the *VM*, not the Windows NIC.
 ### Migration steps
 1. `git clone` into `~/` on WSL2 (config only — `server/`, `data/`, `.env` are gitignored).
 2. `cp .env.example .env` and fill it (copy your secrets over from the laptop's `.env`).
-3. First `./scripts/ctl.sh up <game>` re-downloads the game via steamcmd (~22 GB for ARK, etc.).
+3. First `./ctl up <game>` re-downloads the game via steamcmd (~22 GB for ARK, etc.).
 4. To keep progress, copy world saves from the laptop — e.g. ARK:
    `games/ark-se/server/server/ShooterGame/Saved/SavedArks/` and apply the
    `games/ark-se/*.ini.example` config (or copy the live `Config/LinuxServer/` files).

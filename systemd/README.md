@@ -1,6 +1,6 @@
 # Automated backups via systemd timer
 
-Hands-off backups: run `backup.sh` for each game every 2 hours. Copy these two
+Hands-off backups: run `./ctl backup <game>` for each game every 2 hours. Copy these two
 files into `/etc/systemd/system/`, replace `YOUR_USER` with your username, then
 enable per game.
 
@@ -14,7 +14,7 @@ Description=Backup %i game world
 Type=oneshot
 User=YOUR_USER
 WorkingDirectory=/home/YOUR_USER/home-game-servers
-ExecStart=/home/YOUR_USER/home-game-servers/scripts/backup.sh %i
+ExecStart=/home/YOUR_USER/home-game-servers/ctl backup %i
 ```
 
 `game-backup@.timer`:
