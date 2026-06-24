@@ -46,13 +46,26 @@ public final class ModCatalogService {
 
     public Mod addMod(String id) {
         ModRegistry registry = registries.load();
+        Mod mod;
         if (registry.contains(id)) {
-            return new Mod(id, registry.nameOf(id));
+            mod = new Mod(id, registry.nameOf(id));
+        } else {
+            mod = new Mod(id, workshop.titles(List.of(id)).getOrDefault(id, "(unknown)"));
+            registry.add(mod);
+            registries.save(registry);
         }
-        Mod mod = new Mod(id, workshop.titles(List.of(id)).getOrDefault(id, "(unknown)"));
-        registry.add(mod);
-        registries.save(registry);
+        enableInDefault(id);   // a newly added mod is on for the global (default) config by default
         return mod;
+    }
+
+    private void enableInDefault(String id) {
+        MapConfig def = maps.load(DEFAULT);
+        if (!def.modIds().contains(id)) {
+            List<String> ids = new ArrayList<>(def.modIds());
+            ids.add(id);
+            def.setMods(ids);
+            maps.save(def);
+        }
     }
 
     public int syncRegistry() {

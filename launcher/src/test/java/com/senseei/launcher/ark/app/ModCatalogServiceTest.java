@@ -93,4 +93,14 @@ class ModCatalogServiceTest {
         assertEquals(List.of("222"), repo.load("default").modIds());
         assertEquals(List.of("222"), repo.load("Ragnarok").modIds());
     }
+
+    @Test
+    void addModEnablesItInDefault() {
+        var repo = repoWithDefaultMods(List.of());
+        var svc = new ModCatalogService(new InMemoryRegistryRepo(), new FakeWorkshop(), repo);
+
+        svc.addMod("999");
+
+        assertEquals(List.of("999"), repo.load("default").modIds());
+    }
 }
