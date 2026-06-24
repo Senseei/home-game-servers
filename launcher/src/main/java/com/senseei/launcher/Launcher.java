@@ -55,7 +55,7 @@ public final class Launcher {
         ModRegistryRepository registry = new TsvModRegistryRepository(root);
         WorkshopClient workshop = new SteamWorkshopClient();
         ArkMapService arkMaps = new ArkMapService(mapConfigs, live, env);
-        ModCatalogService mods = new ModCatalogService(registry, workshop, mapConfigs);
+        ModCatalogService mods = new ModCatalogService(registry, workshop, mapConfigs, env);
 
         RconClient rcon = new SourceRconClient();
         Flusher flusher = new GameFlusher(engine, rcon, env);

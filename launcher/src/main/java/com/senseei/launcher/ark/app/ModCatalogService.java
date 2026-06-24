@@ -6,6 +6,7 @@ import com.senseei.launcher.ark.port.WorkshopClient;
 import com.senseei.launcher.ark.domain.MapConfig;
 import com.senseei.launcher.ark.domain.Mod;
 import com.senseei.launcher.ark.domain.ModRegistry;
+import com.senseei.launcher.shared.port.EnvStore;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -15,7 +16,8 @@ import java.util.Set;
 
 /**
  * Use-cases for the mod catalog — thin orchestration over the {@link ModRegistry}
- * and {@link MapConfig} aggregates (the dedup invariant lives in the aggregate).
+ * and {@link MapConfig} aggregates. Any change to a mod list re-syncs the live
+ * {@code ARK_MODS} env for the active map, so mods never need a manual re-apply.
  */
 public final class ModCatalogService {
 
@@ -24,11 +26,14 @@ public final class ModCatalogService {
     private final ModRegistryRepository registries;
     private final WorkshopClient workshop;
     private final MapConfigRepository maps;
+    private final EnvStore env;
 
-    public ModCatalogService(ModRegistryRepository registries, WorkshopClient workshop, MapConfigRepository maps) {
+    public ModCatalogService(ModRegistryRepository registries, WorkshopClient workshop,
+                             MapConfigRepository maps, EnvStore env) {
         this.registries = registries;
         this.workshop = workshop;
         this.maps = maps;
+        this.env = env;
     }
 
     public List<Mod> catalog() {
@@ -54,7 +59,8 @@ public final class ModCatalogService {
             registry.add(mod);
             registries.save(registry);
         }
-        enableInDefault(id);   // a newly added mod is on for the global (default) config by default
+        enableInDefault(id);   // a newly added mod is on for the global (default) config
+        syncActiveMods();
         return mod;
     }
 
@@ -89,6 +95,7 @@ public final class ModCatalogService {
         MapConfig cfg = maps.load(target);
         cfg.setMods(ids);
         maps.save(cfg);
+        syncActiveMods();
     }
 
     /** Toggles one mod for a target (add if absent, remove if present); returns its new state. */
@@ -101,6 +108,7 @@ public final class ModCatalogService {
         }
         cfg.setMods(ids);
         maps.save(cfg);
+        syncActiveMods();
         return nowOn;
     }
 
@@ -114,6 +122,7 @@ public final class ModCatalogService {
         for (String map : maps.customMaps()) {
             dropFromConfig(map, id);
         }
+        syncActiveMods();
         return removed;
     }
 
@@ -125,5 +134,15 @@ public final class ModCatalogService {
             cfg.setMods(ids);
             maps.save(cfg);
         }
+    }
+
+    /**
+     * Re-derive the live {@code ARK_MODS} env from the active map's effective mod list,
+     * so a mod change takes effect on the next server start with no manual re-apply.
+     */
+    private void syncActiveMods() {
+        env.get("ARK_MAP")
+                .filter(map -> !map.isBlank())
+                .ifPresent(map -> env.set("ARK_MODS", String.join(",", maps.load(map).modIds())));
     }
 }
